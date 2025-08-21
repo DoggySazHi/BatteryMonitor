@@ -2,6 +2,8 @@
 #include "constants.h"
 
 // Bluetooth
+#include "JKBMS.h"
+JKBMS bmsDevice(NimBLEAddress("C8:47:80:3A:22:F3", 0));
 
 // PNG decoding
 #include <PNGdec.h>
@@ -14,7 +16,6 @@ PNG png; // PNG decoder instance
 SPIClass mySpi = SPIClass(VSPI);
 TFT_eSPI tft = TFT_eSPI();
 XPT2046_Touchscreen ts(XPT2046_CS, XPT2046_IRQ);
-
 
 // Forward declarations
 void checkTouchScreen();
@@ -37,6 +38,9 @@ void setup()
     // Clear the screen before writing to it
     tft.fillScreen(TFT_BLACK);
     drawReimu();
+    JKBMS::init();
+
+    bmsDevice.connect();
 }
 
 void loop()

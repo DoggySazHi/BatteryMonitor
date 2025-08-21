@@ -1,3 +1,6 @@
+#ifndef CONSTANTS_H
+#define CONSTANTS_H
+
 // Image files can be converted to arrays using the tool here:
 // https://notisrac.github.io/FileToCArray/
 // To use this tool:
@@ -18,3 +21,5 @@
 #define XPT2046_CLK 25
 #define XPT2046_CS 33
 #define DEBOUNCE_TIME 50
+
+#endif

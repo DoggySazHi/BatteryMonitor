@@ -1,5 +1,5 @@
-#ifndef CONSTANTS_H
-#define CONSTANTS_H
+#ifndef MODELS_CONSTANTS_H
+#define MODELS_CONSTANTS_H
 
 #include <Arduino.h>
 
@@ -46,4 +46,4 @@ static const char* BATTERY_ERRORS[] PROGMEM = {
     BATTERY_ERROR_15
 };
 
-#endif // CONSTANTS_H
+#endif // MODELS_CONSTANTS_H
