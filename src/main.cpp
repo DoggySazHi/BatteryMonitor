@@ -1,4 +1,3 @@
-#include "reimu.h"
 #include "constants.h"
 
 // Bluetooth
@@ -6,8 +5,11 @@
 JKBMS bmsDevice(NimBLEAddress("C8:47:80:3A:22:F3", 0));
 
 // PNG decoding
+#ifdef USE_PNG
+#include "reimu.h"
 #include <PNGdec.h>
 PNG png; // PNG decoder instance
+#endif
 
 // Touchscreen and display
 #include <SPI.h>
@@ -19,9 +21,11 @@ XPT2046_Touchscreen ts(XPT2046_CS, XPT2046_IRQ);
 
 // Forward declarations
 void checkTouchScreen();
-void drawReimu();
 void turnOffLEDs();
+#ifdef USE_PNG
+void drawReimu();
 int pngCallback(PNGDRAW* pDraw);
+#endif
 
 void setup()
 {
@@ -41,7 +45,9 @@ void setup()
     
     // Clear the screen before writing to it
     tft.fillScreen(TFT_BLACK);
+#ifdef USE_PNG
     drawReimu();
+#endif
     JKBMS::init();
 
     bmsDevice.connect();
@@ -74,6 +80,7 @@ void turnOffLEDs() {
     digitalWrite(LED_GREEN, HIGH);
 }
 
+#ifdef USE_PNG
 void drawReimu() {
     int rc = png.openFLASH((uint8_t *)reimu, sizeof(reimu), pngCallback);
     if (rc == PNG_SUCCESS) {
@@ -93,3 +100,4 @@ int pngCallback(PNGDRAW* pDraw) {
     tft.pushImage(0, 0 + pDraw->y, pDraw->iWidth, 1, lineBuffer);
     return 1;
 }
+#endif
