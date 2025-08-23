@@ -10,7 +10,7 @@
 
 class JKBMSNotificationBuffer {
 public:
-    void handleNotification(unsigned char* data, size_t length);
+    bool handleNotification(unsigned char* data, size_t length);
     void resetParsedData();
     
     BatteryInfo* getBatteryInfo();

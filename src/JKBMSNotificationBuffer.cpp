@@ -65,7 +65,7 @@ void JKBMSNotificationBuffer::processRecord() {
     }
 }
 
-void JKBMSNotificationBuffer::handleNotification(unsigned char* data, size_t length) {
+bool JKBMSNotificationBuffer::handleNotification(unsigned char* data, size_t length) {
     if (length + notificationLength > sizeof(notificationData)) {
         // If incoming data exceeds buffer size, reset buffer
         notificationLength = 0;
@@ -83,6 +83,10 @@ void JKBMSNotificationBuffer::handleNotification(unsigned char* data, size_t len
     }
 
     Serial.printf("Received message of %d bytes. Buffer length after append: %d\n", length, notificationLength);
+    for (size_t i = 0; i < notificationLength; ++i) {
+        Serial.printf("\\x%02X", notificationData[i]);
+    }
+    Serial.println();
 
     // Process complete records in the buffer
     if (recordIsComplete()) {
@@ -94,7 +98,11 @@ void JKBMSNotificationBuffer::handleNotification(unsigned char* data, size_t len
         } else {
             notificationLength = 0; // Discard all data if no start found
         }
+
+        return true;
     }
+
+    return false;
 }
 
 void JKBMSNotificationBuffer::resetParsedData() {

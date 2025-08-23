@@ -14,14 +14,8 @@ struct SettingsInfo {
         info.record_counter = parse_byte(data, 15);
     }
 
-    String toString() const {
-        String result = "SettingsInfo(";
-        result.reserve(128);
-        result += "header=" + String(header) + ", ";
-        result += "record_type=" + String(record_type) + ", ";
-        result += "record_counter=" + String(record_counter);
-        result += ")";
-        return result;
+    void print() const {
+        Serial.printf("SettingsInfo(header=%s, record_type=%s, record_counter=%d)\n", header, record_type, record_counter);
     }
 };
 

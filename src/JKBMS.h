@@ -2,6 +2,9 @@
 #define JK_BMS_H
 
 #include "models/constants.h"
+#include "models/battery_info.h"
+#include "models/settings_info.h"
+#include "models/cell_info.h"
 #include "JKBMSNotificationBuffer.h"
 
 #include <NimBLEDevice.h>
@@ -20,7 +23,10 @@ public:
     void connect();
     void disconnect();
     void monitor();
-    void getBLEData();
+    
+    BatteryInfo* getBatteryInfo();
+    SettingsInfo* getSettingsInfo();
+    CellInfo* getCellInfo();
 
 private:
     NimBLEAddress macAddress;
@@ -28,6 +34,7 @@ private:
     
     const NimBLEAdvertisedDevice* bleDevice = nullptr;
     bool readyToConnect = false;
+    unsigned long lastActivity = 0;
     NimBLEClient* bleClient = nullptr;
 
     NimBLERemoteService* bleService = nullptr;

@@ -56,40 +56,36 @@ struct CellInfo {
         info.percent_remaining = parse_byte(data, 118);
     }
 
-    String toString() const {
-        String result = "CellInfo(";
-        result.reserve(512);
-        result += "header=" + String(header) + ", ";
-        result += "record_type=" + String(record_type) + ", ";
-        result += "record_counter=" + String(record_counter) + ", ";
-        result += "cell_voltages=[";
+    void print() const {
+        Serial.printf(
+            "CellInfo(header=%s, record_type=%s, record_counter=%d, cell_voltages=[",
+            header,
+            record_type,
+            record_counter);
         for (int i = 0; i < 16; i++) {
-            result += String(cell_voltages[i]);
-            if (i < 15) result += ", ";
+            Serial.printf("%f", cell_voltages[i]);
+            if (i < 15) Serial.printf(", ");
         }
-        result += "], ";
-        result += "average_cell_voltage=" + String(average_cell_voltage) + ", ";
-        result += "delta_cell_voltage=" + String(delta_cell_voltage) + ", ";
-        result += "cell_wire_resistances=[";
+        Serial.printf("], average_cell_voltage=%f, delta_cell_voltage=%f, cell_wire_resistances=[",
+            average_cell_voltage,
+            delta_cell_voltage);
         for (int i = 0; i < 16; i++) {
-            result += String(cell_wire_resistances[i]);
-            if (i < 15) result += ", ";
+            Serial.printf("%f", cell_wire_resistances[i]);
+            if (i < 15) Serial.printf(", ");
         }
-        result += "], ";
-        result += "mosfet_temperature=" + String(mosfet_temperature) + ", ";
-        result += "battery_voltage=" + String(battery_voltage) + ", ";
-        result += "battery_power=" + String(battery_power) + ", ";
-        result += "battery_current=" + String(battery_current) + ", ";
-        result += "battery_temperature_1=" + String(battery_temperature_1) + ", ";
-        result += "battery_temperature_2=" + String(battery_temperature_2) + ", ";
-        result += "percent_remaining=" + String(percent_remaining) + ", ";
-        result += "remaining_capacity=" + String(remaining_capacity) + ", ";
-        result += "nominal_capacity=" + String(nominal_capacity) + ", ";
-        result += "cycle_capacity=" + String(cycle_capacity) + ", ";
-        result += "state_of_health=" + String(state_of_health) + ", ";
-        result += "cycle_count=" + String(cycle_count);
-        result += ")";
-        return result;
+        Serial.printf("], mosfet_temperature=%f, battery_voltage=%f, battery_power=%f, battery_current=%f, battery_temperature_1=%f, battery_temperature_2=%f, percent_remaining=%d, remaining_capacity=%f, nominal_capacity=%f, cycle_capacity=%f, state_of_health=%d, cycle_count=%d)\n",
+            mosfet_temperature,
+            battery_voltage,
+            battery_power,
+            battery_current,
+            battery_temperature_1,
+            battery_temperature_2,
+            percent_remaining,
+            remaining_capacity,
+            nominal_capacity,
+            cycle_capacity,
+            state_of_health,
+            cycle_count);
     }
 };
 

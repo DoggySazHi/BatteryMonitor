@@ -39,26 +39,25 @@ struct BatteryInfo {
         parse_cstr(data, 118, 16, info.setupPasscode);
     }
 
-    String toString() const {
-        String result = "BatteryInfo(";
-        result.reserve(512); // Reserve enough space for the string
-        result += "header=" + String(header) + ", ";
-        result += "record_type=" + String(record_type) + ", ";
-        result += "record_counter=" + String(record_counter) + ", ";
-        result += "device_model=" + String(device_model) + ", ";
-        result += "hardware_version=" + String(hardware_version) + ", ";
-        result += "software_version=" + String(software_version) + ", ";
-        result += "uptime=" + String(uptime) + ", ";
-        result += "powerCycles=" + String(powerCycles) + ", ";
-        result += "deviceName=" + String(deviceName) + ", ";
-        result += "devicePasscode=" + String(devicePasscode) + ", ";
-        result += "firstStartupDate=" + String(firstStartupDate) + ", ";
-        result += "serialNumber=" + String(serialNumber) + ", ";
-        result += "passcode=" + String(passcode) + ", ";
-        result += "userData=" + String(userData) + ", ";
-        result += "setupPasscode=" + String(setupPasscode);
-        result += ")";
-        return result;
+    void print() const {
+        Serial.printf(
+            "BatteryInfo(header=%s, record_type=%s, record_counter=%d, device_model=%s, hardware_version=%s, software_version=%s, "
+            "uptime=%u, powerCycles=%u, deviceName=%s, devicePasscode=%s, firstStartupDate=%s, serialNumber=%s, passcode=%s, userData=%s, setupPasscode=%s)\n",
+            header,
+            record_type,
+            record_counter,
+            device_model,
+            hardware_version,
+            software_version,
+            uptime,
+            powerCycles,
+            deviceName,
+            devicePasscode,
+            firstStartupDate,
+            serialNumber,
+            passcode,
+            userData,
+            setupPasscode);
     }
 };
 

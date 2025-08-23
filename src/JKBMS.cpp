@@ -17,6 +17,9 @@ JKBMS::JKBMS(const NimBLEAddress& mac) {
 }
 
 void JKBMS::connect() {
+    lastActivity = millis();
+    buffer.resetParsedData();
+
     // Scan for devices
     bleScan->start(SCAN_TIME);
     Serial.println("Scanning for devices...");
@@ -53,6 +56,7 @@ void JKBMS::onScanEnd(const NimBLEScanResults& results, int reason)
 
 void JKBMS::onConnect(NimBLEClient* pClient) {
     Serial.printf("Connected to: %s\n", pClient->getPeerAddress().toString().c_str());
+    lastActivity = millis();
 
     // Discover services and characteristics
     bleService = pClient->getService("FFE0");
@@ -79,10 +83,33 @@ void JKBMS::onDisconnect(NimBLEClient* pClient, int reason) {
 }
 
 void JKBMS::notificationCallback(NimBLERemoteCharacteristic *characteristic, uint8_t *data, size_t length, bool isNotify) {
-    buffer.handleNotification(data, length);
+    if (buffer.handleNotification(data, length)) {
+        lastActivity = millis();
+
+        if (buffer.getBatteryInfo()) {
+            // If we have battery data, we should send a request for cell data
+            bleCharacteristic->writeValue(GET_CELL_INFO);
+        } else if (buffer.getCellInfo()) {
+            // If we have cell data, we're done - disconnect
+            disconnect();
+        }
+    }
 }
 
 void JKBMS::monitor() {
+    unsigned long currentTime = millis();
+
+    if (!bleClient) {
+        // Not running, don't care.
+        return;
+    }
+
+    if (currentTime - lastActivity > CONNECT_TIME) {
+        // No activity - disconnect
+        Serial.println("No activity - disconnecting");
+        disconnect();
+    }
+
     if (readyToConnect && bleDevice) {
         readyToConnect = false;
         connectToDevice();
@@ -126,4 +153,16 @@ void JKBMS::connectToDevice() {
         bleDevice = nullptr;
         return;
     }
+}
+
+BatteryInfo* JKBMS::getBatteryInfo() {
+    return buffer.getBatteryInfo();
+}
+
+SettingsInfo* JKBMS::getSettingsInfo() {
+    return buffer.getSettingsInfo();
+}
+
+CellInfo* JKBMS::getCellInfo() {
+    return buffer.getCellInfo();
 }
