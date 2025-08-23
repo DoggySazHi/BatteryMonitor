@@ -28,9 +28,11 @@ void JKBMS::connect() {
 void JKBMS::disconnect() {
     if (bleClient && bleClient->isConnected()) {
         bleClient->disconnect(BLE_ERR_SUCCESS);
+        BLEDevice::deleteClient(bleClient);
         Serial.println("Disconnected from device");
     }
 
+    Serial.printf("Destroying BLE client %p\n", bleClient);
     bleClient = nullptr;
     bleDevice = nullptr;
     bleService = nullptr;
@@ -57,17 +59,47 @@ void JKBMS::onScanEnd(const NimBLEScanResults& results, int reason)
 void JKBMS::onConnect(NimBLEClient* pClient) {
     Serial.printf("Connected to: %s\n", pClient->getPeerAddress().toString().c_str());
     lastActivity = millis();
+    readyToExchange = true;
+}
+
+void JKBMS::onPostConnect() {
+    Serial.printf("Current MTU: %d\n", bleClient->getMTU());
+
+    lastActivity = millis();
+    // NOTE: ble_att_clt_tx_mtu in ble_att_clt.c needs to be modified to not set BLE_HS_EALREADY
+    Serial.printf("Locating services...\n");
+    bleClient->discoverAttributes();
+
+    // Print all available services
+    for (const auto& service : bleClient->getServices(false)) {
+        Serial.printf("Found service: %s\n", service->getUUID().toString().c_str());
+    }
+
+    Serial.printf("Locating characteristics...\n");
 
     // Discover services and characteristics
-    bleService = pClient->getService("FFE0");
+
+    bleService = bleClient->getService(NimBLEUUID("FFE0"));
     if (bleService) {
+        Serial.printf("Found service: %s\n", bleService->getUUID().toString().c_str());
+
+        // Discover characteristics
+        for (const auto& characteristic : bleService->getCharacteristics(true)) {
+            Serial.printf("Found characteristic: %s\n", characteristic->getUUID().toString().c_str());
+        }
+
         bleCharacteristic = bleService->getCharacteristic("FFE1");
     }
 
-    bleCharacteristic->subscribe(true, [this](NimBLERemoteCharacteristic* characteristic, uint8_t* data, size_t length, bool isNotify) {
-        notificationCallback(characteristic, data, length, isNotify);
-    }, false);
-    bleCharacteristic->writeValue(GET_BATTERY_INFO);
+    if (bleCharacteristic) {
+        Serial.printf("Found characteristic: %s\n", bleCharacteristic->getUUID().toString().c_str());
+        Serial.println("Subscribing to notifications...");
+        bleCharacteristic->subscribe(true, [this](NimBLERemoteCharacteristic* characteristic, uint8_t* data, size_t length, bool isNotify) {
+            notificationCallback(characteristic, data, length, isNotify);
+        }, false);
+        Serial.println("Requesting battery info...");
+        bleCharacteristic->writeValue(GET_BATTERY_INFO);
+    }
 }
 
 void JKBMS::onConnectFail(NimBLEClient* pClient, int reason) {
@@ -86,11 +118,26 @@ void JKBMS::notificationCallback(NimBLERemoteCharacteristic *characteristic, uin
     if (buffer.handleNotification(data, length)) {
         lastActivity = millis();
 
-        if (buffer.getBatteryInfo()) {
+        Serial.println("Notification processed successfully");
+        Serial.printf("- Battery info: %s\n", buffer.getBatteryInfo() ? "Received" : "N/A");
+        Serial.printf("- Settings info: %s\n", buffer.getSettingsInfo() ? "Received" : "N/A");
+        Serial.printf("- Cell info: %s\n", buffer.getCellInfo() ? "Received" : "N/A");
+
+        if (buffer.getBatteryInfo() && !buffer.getCellInfo() && !buffer.getSettingsInfo()) {
             // If we have battery data, we should send a request for cell data
-            bleCharacteristic->writeValue(GET_CELL_INFO);
+            buffer.getBatteryInfo()->print();
+            Serial.println("Requesting settings info...");
+            bleCharacteristic->writeValue(GET_SETTINGS_INFO);
+        } else if (buffer.getSettingsInfo() && !buffer.getCellInfo()) {
+            // If we have settings data, we should send a request for cell data
+            buffer.getSettingsInfo()->print();
+            Serial.println("Requesting cell info...");
+            // Comes with the settings info request
+            // bleCharacteristic->writeValue(GET_CELL_INFO);
         } else if (buffer.getCellInfo()) {
             // If we have cell data, we're done - disconnect
+            buffer.getCellInfo()->print();
+            Serial.println("Received cell info, disconnecting...");
             disconnect();
         }
     }
@@ -99,20 +146,22 @@ void JKBMS::notificationCallback(NimBLERemoteCharacteristic *characteristic, uin
 void JKBMS::monitor() {
     unsigned long currentTime = millis();
 
-    if (!bleClient) {
-        // Not running, don't care.
-        return;
-    }
-
-    if (currentTime - lastActivity > CONNECT_TIME) {
-        // No activity - disconnect
-        Serial.println("No activity - disconnecting");
-        disconnect();
-    }
-
     if (readyToConnect && bleDevice) {
         readyToConnect = false;
         connectToDevice();
+    }
+
+    if (readyToExchange && currentTime - lastActivity > 1000 && lastActivity - currentTime > 2000) {
+        // Start exchanging data
+        readyToExchange = false;
+        onPostConnect();
+    }
+
+    // Due to interrupts, lastActivity may be greater than currentTime - need to handle this scenario due to underflow
+    if (currentTime - lastActivity > 60000 && lastActivity - currentTime > 2000 && bleDevice) {
+        // No activity - disconnect
+        Serial.printf("No activity - disconnecting (%d ms)\n", currentTime - lastActivity);
+        disconnect();
     }
 }
 
@@ -140,6 +189,7 @@ void JKBMS::connectToDevice() {
     }
 
     Serial.printf("Creating new client for device: %s\n", bleDevice->getAddress().toString().c_str());
+    lastActivity = millis();
 
     bleClient = NimBLEDevice::createClient(bleDevice->getAddress());
     bleClient->setSelfDelete(true, true);

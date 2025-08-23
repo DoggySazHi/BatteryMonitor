@@ -34,6 +34,7 @@ private:
     
     const NimBLEAdvertisedDevice* bleDevice = nullptr;
     bool readyToConnect = false;
+    bool readyToExchange = false;
     unsigned long lastActivity = 0;
     NimBLEClient* bleClient = nullptr;
 
@@ -46,6 +47,7 @@ private:
     void onResult(const NimBLEAdvertisedDevice* advertisedDevice) override;
     void onScanEnd(const NimBLEScanResults& results, int reason) override;
     void onConnect(NimBLEClient* pClient) override;
+    void onPostConnect();
     void onConnectFail(NimBLEClient* pClient, int reason) override;
     void onDisconnect(NimBLEClient* pClient, int reason) override;
     void connectToDevice();

@@ -17,18 +17,21 @@ bool JKBMSNotificationBuffer::recordIsComplete() {
     }
 
     // If the buffer contains a ping response, dump the entire thing.
-    for (size_t i = 0; i <= notificationLength - sizeof(PING_RESPONSE); ++i) {
-        if (memcmp(&notificationData[i], PING_RESPONSE, sizeof(PING_RESPONSE)) == 0) {
-            notificationLength = 0; // Discard all data if ping response found
-            return false;
-        }
-    }
+    // for (size_t i = 0; i <= notificationLength - sizeof(PING_RESPONSE); ++i) {
+    //     if (memcmp(&notificationData[i], PING_RESPONSE, sizeof(PING_RESPONSE)) == 0) {
+    //         Serial.println("Ping response found, discarding buffer.");
+    //         notificationLength = 0; // Discard all data if ping response found
+    //         return false;
+    //     }
+    // }
 
     // Search for the start of a record in the buffer
     int startIndex = findSOR();
     if (startIndex != -1) {
+        Serial.printf("Start of record found at index: %d\n", startIndex);
         shiftBufferToStart(startIndex);
     } else {
+        Serial.println("No start of record found, discarding buffer.");
         notificationLength = 0; // Discard all data if no start found
         return false;
     }
@@ -38,7 +41,7 @@ bool JKBMSNotificationBuffer::recordIsComplete() {
         return true;
     }
 
-    return true;
+    return false;
 }
 
 void JKBMSNotificationBuffer::shiftBufferToStart(size_t newStart) {
@@ -51,17 +54,20 @@ void JKBMSNotificationBuffer::shiftBufferToStart(size_t newStart) {
 }
 
 void JKBMSNotificationBuffer::processRecord() {
-    if (notificationData[5] == BATTERY_INFO_RECORD_TYPE) {
+    if (notificationData[4] == BATTERY_INFO_RECORD_TYPE) {
         BatteryInfo::parseBatteryInfo(notificationData, batteryInfo);
+        Serial.println("Parsed battery info");
         batteryInfoValid = true;
-    } else if (notificationData[5] == SETTINGS_INFO_RECORD_TYPE) {
+    } else if (notificationData[4] == SETTINGS_INFO_RECORD_TYPE) {
         SettingsInfo::parseSettingsInfo(notificationData, settingsInfo);
+        Serial.println("Parsed settings info");
         settingsInfoValid = true;
-    } else if (notificationData[5] == CELL_INFO_RECORD_TYPE) {
+    } else if (notificationData[4] == CELL_INFO_RECORD_TYPE) {
         CellInfo::parseCellInfo(notificationData, cellInfo);
+        Serial.println("Parsed cell info");
         cellInfoValid = true;
     } else {
-        Serial.println("Unknown record type: " + String((int)notificationData[5]));
+        Serial.printf("Unknown record type: %02X\n", notificationData[4]);
     }
 }
 
@@ -82,11 +88,11 @@ bool JKBMSNotificationBuffer::handleNotification(unsigned char* data, size_t len
         notificationData[notificationLength++] = data[i];
     }
 
-    Serial.printf("Received message of %d bytes. Buffer length after append: %d\n", length, notificationLength);
-    for (size_t i = 0; i < notificationLength; ++i) {
-        Serial.printf("\\x%02X", notificationData[i]);
-    }
-    Serial.println();
+    // Serial.printf("Received message of %d bytes. Buffer length after append: %d\n", length, notificationLength);
+    // for (size_t i = 0; i < notificationLength; ++i) {
+    //     Serial.printf("\\x%02X", notificationData[i]);
+    // }
+    // Serial.println();
 
     // Process complete records in the buffer
     if (recordIsComplete()) {
@@ -94,8 +100,10 @@ bool JKBMSNotificationBuffer::handleNotification(unsigned char* data, size_t len
         notificationData[0] = 0; // Destroy SOR
         int nextSOR = findSOR();
         if (nextSOR != -1) {
+            Serial.printf("Next start of record found at index: %d\n", nextSOR);
             shiftBufferToStart(nextSOR);
         } else {
+            Serial.println("No next start of record found, discarding buffer.");
             notificationLength = 0; // Discard all data if no start found
         }
 

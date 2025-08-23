@@ -2,7 +2,7 @@
 
 // Bluetooth
 #include "JKBMS.h"
-JKBMS bmsDevice(NimBLEAddress("C8:47:80:3A:22:F3", 0));
+JKBMS bmsDevice(NimBLEAddress("C8:47:80:20:2E:B3", 0));
 
 // PNG decoding
 #ifdef USE_PNG
@@ -66,7 +66,7 @@ void checkTouchScreen() {
     if (ts.touched() && (currentMillis - lastTouchTime > DEBOUNCE_TIME)) {
         lastTouchTime = currentMillis;
         TS_Point p = ts.getPoint();
-        Serial.printf("Touch detected at (%d, %d)\n", p.x, p.y);
+        // Serial.printf("Touch detected at (%d, %d)\n", p.x, p.y);
     }
 }
 
