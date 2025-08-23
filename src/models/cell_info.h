@@ -25,35 +25,35 @@ struct CellInfo {
     uint8_t state_of_health;
     uint32_t cycle_count;
 
-    CellInfo(const char* data) {
-        parse_bytes_str(data, 0, 12, header);
-        parse_bytes_str(data, 12, 3, record_type);
-        record_counter = parse_byte(data, 15);
+    static void parseCellInfo(const unsigned char* data, CellInfo& info) {
+        parse_bytes_str(data, 0, 12, info.header);
+        parse_bytes_str(data, 12, 3, info.record_type);
+        info.record_counter = parse_byte(data, 15);
 
         for (int i = 0; i < 16; i++) {
-            cell_voltages[i] = parse_16bit_unsigned(data, 16 + i * 2) / 1000.0f;
+            info.cell_voltages[i] = parse_16bit_unsigned(data, 16 + i * 2) / 1000.0f;
         }
 
-        average_cell_voltage = parse_16bit_unsigned(data, 48) / 1000.0f;
-        delta_cell_voltage = parse_16bit_unsigned(data, 50) / 1000.0f;
+        info.average_cell_voltage = parse_16bit_unsigned(data, 48) / 1000.0f;
+        info.delta_cell_voltage = parse_16bit_unsigned(data, 50) / 1000.0f;
 
         for (int i = 0; i < 16; i++) {
-            cell_wire_resistances[i] = parse_16bit_unsigned(data, 52 + i * 2) / 1000.0f;
+            info.cell_wire_resistances[i] = parse_16bit_unsigned(data, 52 + i * 2) / 1000.0f;
         }
 
-        mosfet_temperature = parse_16bit_unsigned(data, 84) / 10.0f;
+        info.mosfet_temperature = parse_16bit_unsigned(data, 84) / 10.0f;
 
-        battery_voltage = parse_32bit_unsigned(data, 86) / 1000.0f;
-        battery_power = parse_16bit_unsigned(data, 90) / 1000.0f;
-        battery_current = parse_32bit_signed(data, 94) / 1000.0f;
+        info.battery_voltage = parse_32bit_unsigned(data, 86) / 1000.0f;
+        info.battery_power = parse_16bit_unsigned(data, 90) / 1000.0f;
+        info.battery_current = parse_32bit_signed(data, 94) / 1000.0f;
 
-        battery_temperature_1 = parse_16bit_unsigned(data, 98) / 10.0f;
-        battery_temperature_2 = parse_16bit_unsigned(data, 100) / 10.0f;
+        info.battery_temperature_1 = parse_16bit_unsigned(data, 98) / 10.0f;
+        info.battery_temperature_2 = parse_16bit_unsigned(data, 100) / 10.0f;
 
         uint16_t alarm_bits = parse_16bit_unsigned(data, 102);
         // Decoding the alarms - look at BATTERY_ERRORS - not done here to save memory
 
-        percent_remaining = parse_byte(data, 118);
+        info.percent_remaining = parse_byte(data, 118);
     }
 
     String toString() const {

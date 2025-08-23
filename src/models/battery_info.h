@@ -20,23 +20,23 @@ struct BatteryInfo {
     char userData[16];
     char setupPasscode[16];
 
-    BatteryInfo(const char* data) {
-        parse_bytes_str(data, 0, 4, header);
-        parse_bytes_str(data, 4, 1, record_type);
-        record_counter = parse_byte(data, 5);
-        parse_cstr(data, 6, 16, device_model);
-        parse_cstr(data, 22, 8, hardware_version);
-        parse_cstr(data, 30, 8, software_version);
+    static void parseBatteryInfo(const unsigned char* data, BatteryInfo& info) {
+        parse_bytes_str(data, 0, 4, info.header);
+        parse_bytes_str(data, 4, 1, info.record_type);
+        info.record_counter = parse_byte(data, 5);
+        parse_cstr(data, 6, 16, info.device_model);
+        parse_cstr(data, 22, 8, info.hardware_version);
+        parse_cstr(data, 30, 8, info.software_version);
 
-        uptime = parse_32bit_unsigned(data, 38);
-        powerCycles = parse_32bit_unsigned(data, 42);
-        parse_cstr(data, 46, 16, deviceName);
-        parse_cstr(data, 62, 16, devicePasscode);
-        parse_cstr(data, 78, 8, firstStartupDate);
-        parse_cstr(data, 86, 11, serialNumber);
-        parse_cstr(data, 97, 5, passcode);
-        parse_cstr(data, 102, 16, userData);
-        parse_cstr(data, 118, 16, setupPasscode);
+        info.uptime = parse_32bit_unsigned(data, 38);
+        info.powerCycles = parse_32bit_unsigned(data, 42);
+        parse_cstr(data, 46, 16, info.deviceName);
+        parse_cstr(data, 62, 16, info.devicePasscode);
+        parse_cstr(data, 78, 8, info.firstStartupDate);
+        parse_cstr(data, 86, 11, info.serialNumber);
+        parse_cstr(data, 97, 5, info.passcode);
+        parse_cstr(data, 102, 16, info.userData);
+        parse_cstr(data, 118, 16, info.setupPasscode);
     }
 
     String toString() const {

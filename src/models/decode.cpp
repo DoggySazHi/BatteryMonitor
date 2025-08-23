@@ -1,6 +1,6 @@
 #include "decode.h"
 
-void parse_cstr(const char* data, size_t index, size_t length, char* output) {
+void parse_cstr(const unsigned char* data, size_t index, size_t length, char* output) {
     for (size_t i = 0; i < length && data[index + i] != '\0'; i++) {
         output[i] = data[index + i];
     }
@@ -8,7 +8,7 @@ void parse_cstr(const char* data, size_t index, size_t length, char* output) {
 }
 
 // NOTE: the output string should be 3 * length
-void parse_bytes_str(const char* data, size_t index, size_t length, char* output) {
+void parse_bytes_str(const unsigned char* data, size_t index, size_t length, char* output) {
     for (size_t i = 0; i < length; i++) {
         sprintf(output + i * 3, "%02X ", static_cast<uint8_t>(data[index + i]));
     }
@@ -16,22 +16,22 @@ void parse_bytes_str(const char* data, size_t index, size_t length, char* output
 }
 
 // Only used to maintain parity with Python implementation
-uint8_t parse_byte(const char* data, size_t index) {
+uint8_t parse_byte(const unsigned char* data, size_t index) {
     return static_cast<uint8_t>(data[index]);
 }
 
-uint16_t parse_16bit_unsigned(const char* data, size_t index) {
+uint16_t parse_16bit_unsigned(const unsigned char* data, size_t index) {
     return (static_cast<uint8_t>(data[index + 1]) << 8) | (static_cast<uint8_t>(data[index]) << 0);
 }
 
-uint32_t parse_32bit_unsigned(const char* data, size_t index) {
+uint32_t parse_32bit_unsigned(const unsigned char* data, size_t index) {
     return (static_cast<uint8_t>(data[index + 3]) << 24) |
            (static_cast<uint8_t>(data[index + 2]) << 16) |
            (static_cast<uint8_t>(data[index + 1]) << 8) |
            (static_cast<uint8_t>(data[index]) << 0);
 }
 
-int32_t parse_32bit_signed(const char* data, size_t index) {
+int32_t parse_32bit_signed(const unsigned char* data, size_t index) {
     uint32_t value = parse_32bit_unsigned(data, index);
     return (data[index + 3] & 0x80) ? value - 0x100000000 : value; // Adjust for sign
 }

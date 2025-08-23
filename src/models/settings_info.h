@@ -8,10 +8,10 @@ struct SettingsInfo {
     char record_type[3];
     uint8_t record_counter;
 
-    SettingsInfo(const char* data) {
-        parse_bytes_str(data, 0, 12, header);
-        parse_bytes_str(data, 12, 3, record_type);
-        record_counter = parse_byte(data, 15);
+    static void parseSettingsInfo(const unsigned char* data, SettingsInfo& info) {
+        parse_bytes_str(data, 0, 12, info.header);
+        parse_bytes_str(data, 12, 3, info.record_type);
+        info.record_counter = parse_byte(data, 15);
     }
 
     String toString() const {

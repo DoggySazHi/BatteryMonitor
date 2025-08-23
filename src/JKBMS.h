@@ -2,18 +2,16 @@
 #define JK_BMS_H
 
 #include "models/constants.h"
-#include "models/battery_info.h"
-#include "models/settings_info.h"
-#include "models/cell_info.h"
+#include "JKBMSNotificationBuffer.h"
 
 #include <NimBLEDevice.h>
 
 #define SCAN_TIME 5000
-#define SCAN_INTERVAL 100
-#define SCAN_WINDOW 100
-#define CONNECT_TIME 5000
+#define SCAN_INTERVAL 30
+#define SCAN_WINDOW 30
+#define CONNECT_TIME 10000
 
-class JKBMS : public NimBLEScanCallbacks
+class JKBMS : public NimBLEScanCallbacks, public NimBLEClientCallbacks
 {
 public:
     JKBMS(const NimBLEAddress& mac);
@@ -21,16 +19,29 @@ public:
     static void init();
     void connect();
     void disconnect();
+    void monitor();
     void getBLEData();
 
 private:
     NimBLEAddress macAddress;
     NimBLEScan* bleScan;
-    NimBLEClient* bleClient;
-    char bluetoothBuffer[2048];
-    void notificationCallback(NimBLECharacteristic* characteristic, uint8_t* data, size_t length, bool isNotify);
-    void onResult(const NimBLEAdvertisedDevice* advertisedDevice);
-    void onScanEnd(const NimBLEScanResults& results, int reason);
+    
+    const NimBLEAdvertisedDevice* bleDevice = nullptr;
+    bool readyToConnect = false;
+    NimBLEClient* bleClient = nullptr;
+
+    NimBLERemoteService* bleService = nullptr;
+    NimBLERemoteCharacteristic* bleCharacteristic = nullptr;
+
+    JKBMSNotificationBuffer buffer;
+
+    void notificationCallback(NimBLERemoteCharacteristic* characteristic, uint8_t* data, size_t length, bool isNotify);
+    void onResult(const NimBLEAdvertisedDevice* advertisedDevice) override;
+    void onScanEnd(const NimBLEScanResults& results, int reason) override;
+    void onConnect(NimBLEClient* pClient) override;
+    void onConnectFail(NimBLEClient* pClient, int reason) override;
+    void onDisconnect(NimBLEClient* pClient, int reason) override;
+    void connectToDevice();
 };
 
 

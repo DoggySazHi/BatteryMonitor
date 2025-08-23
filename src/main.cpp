@@ -20,12 +20,16 @@ XPT2046_Touchscreen ts(XPT2046_CS, XPT2046_IRQ);
 // Forward declarations
 void checkTouchScreen();
 void drawReimu();
+void turnOffLEDs();
 int pngCallback(PNGDRAW* pDraw);
 
 void setup()
 {
     Serial.begin(115200);
-    
+
+    // Turn off LEDs
+    turnOffLEDs();
+
     // Initialise the display
     tft.init();
     tft.setRotation(1); //This is the display in landscape
@@ -46,6 +50,7 @@ void setup()
 void loop()
 {
     checkTouchScreen();
+    bmsDevice.monitor();
 }
 
 unsigned long lastTouchTime = 0;
@@ -57,6 +62,16 @@ void checkTouchScreen() {
         TS_Point p = ts.getPoint();
         Serial.printf("Touch detected at (%d, %d)\n", p.x, p.y);
     }
+}
+
+void turnOffLEDs() {
+    pinMode(LED_BLUE, OUTPUT);
+    pinMode(LED_RED, OUTPUT);
+    pinMode(LED_GREEN, OUTPUT);
+    // LEDs at HIGH are off, not LOW - don't ask why
+    digitalWrite(LED_BLUE, HIGH);
+    digitalWrite(LED_RED, HIGH);
+    digitalWrite(LED_GREEN, HIGH);
 }
 
 void drawReimu() {
