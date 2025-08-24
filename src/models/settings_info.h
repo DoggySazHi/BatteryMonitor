@@ -9,8 +9,8 @@ struct SettingsInfo {
     uint8_t record_counter;
 
     static void parseSettingsInfo(const unsigned char* data, SettingsInfo& info) {
-        parse_bytes_str(data, 0, 12, info.header);
-        parse_bytes_str(data, 12, 3, info.record_type);
+        parse_bytes_str(data, 0, 4, info.header);
+        parse_bytes_str(data, 4, 1, info.record_type);
         info.record_counter = parse_byte(data, 15);
     }
 

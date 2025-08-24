@@ -1,6 +1,8 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
+#define JKBMS_DEBUG
+
 // Image files can be converted to arrays using the tool here:
 // https://notisrac.github.io/FileToCArray/
 // To use this tool:

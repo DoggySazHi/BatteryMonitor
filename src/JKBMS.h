@@ -27,11 +27,15 @@ public:
     BatteryInfo* getBatteryInfo();
     SettingsInfo* getSettingsInfo();
     CellInfo* getCellInfo();
+    void resetParsedData();
+
+    bool isRunning() const;
 
 private:
     NimBLEAddress macAddress;
     NimBLEScan* bleScan;
-    
+
+    bool runFlag = false; // Atomic flag to indicate if the BMS is running
     const NimBLEAdvertisedDevice* bleDevice = nullptr;
     bool readyToConnect = false;
     bool readyToExchange = false;

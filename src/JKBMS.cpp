@@ -1,4 +1,4 @@
-#include "jkbms.h"
+#include "JKBMS.h"
 
 void JKBMS::init() {
     NimBLEDevice::init("JKBMS");
@@ -10,7 +10,6 @@ JKBMS::JKBMS(const NimBLEAddress& mac) {
     macAddress = mac;
 
     bleScan = NimBLEDevice::getScan();
-    bleScan->setScanCallbacks(this);
     bleScan->setInterval(SCAN_INTERVAL);
     bleScan->setWindow(SCAN_WINDOW);
     bleScan->setActiveScan(true);
@@ -18,9 +17,11 @@ JKBMS::JKBMS(const NimBLEAddress& mac) {
 
 void JKBMS::connect() {
     lastActivity = millis();
+    runFlag = true;
     buffer.resetParsedData();
 
     // Scan for devices
+    bleScan->setScanCallbacks(this);
     bleScan->start(SCAN_TIME);
     Serial.println("Scanning for devices...");
 }
@@ -37,6 +38,7 @@ void JKBMS::disconnect() {
     bleDevice = nullptr;
     bleService = nullptr;
     bleCharacteristic = nullptr;
+    runFlag = false;
 }
 
 void JKBMS::onResult(const NimBLEAdvertisedDevice* advertisedDevice) {
@@ -44,8 +46,8 @@ void JKBMS::onResult(const NimBLEAdvertisedDevice* advertisedDevice) {
     Serial.printf("Found device: %s\n", advertisedDevice->getAddress().toString().c_str());
     if (advertisedDevice->getAddress() == macAddress) {
         Serial.println("Found target device, connecting...");
-        bleScan->stop();
         bleDevice = advertisedDevice;
+        bleScan->stop();
         readyToConnect = true;
     }
 }
@@ -54,6 +56,7 @@ void JKBMS::onScanEnd(const NimBLEScanResults& results, int reason)
 {
     // Handle the end of the scan
     Serial.println("Scan ended");
+    runFlag = false;
 }
 
 void JKBMS::onConnect(NimBLEClient* pClient) {
@@ -63,36 +66,41 @@ void JKBMS::onConnect(NimBLEClient* pClient) {
 }
 
 void JKBMS::onPostConnect() {
+#ifdef JKBMS_DEBUG
     Serial.printf("Current MTU: %d\n", bleClient->getMTU());
+#endif
 
     lastActivity = millis();
     // NOTE: ble_att_clt_tx_mtu in ble_att_clt.c needs to be modified to not set BLE_HS_EALREADY
-    Serial.printf("Locating services...\n");
+    Serial.printf("Locating attributes...\n");
     bleClient->discoverAttributes();
 
+#ifdef JKBMS_DEBUG
     // Print all available services
     for (const auto& service : bleClient->getServices(false)) {
         Serial.printf("Found service: %s\n", service->getUUID().toString().c_str());
     }
-
-    Serial.printf("Locating characteristics...\n");
+#endif
 
     // Discover services and characteristics
-
     bleService = bleClient->getService(NimBLEUUID("FFE0"));
     if (bleService) {
         Serial.printf("Found service: %s\n", bleService->getUUID().toString().c_str());
 
         // Discover characteristics
+#ifdef JKBMS_DEBUG
         for (const auto& characteristic : bleService->getCharacteristics(true)) {
             Serial.printf("Found characteristic: %s\n", characteristic->getUUID().toString().c_str());
         }
+#endif
 
         bleCharacteristic = bleService->getCharacteristic("FFE1");
     }
 
     if (bleCharacteristic) {
+#ifdef JKBMS_DEBUG
         Serial.printf("Found characteristic: %s\n", bleCharacteristic->getUUID().toString().c_str());
+#endif
         Serial.println("Subscribing to notifications...");
         bleCharacteristic->subscribe(true, [this](NimBLERemoteCharacteristic* characteristic, uint8_t* data, size_t length, bool isNotify) {
             notificationCallback(characteristic, data, length, isNotify);
@@ -118,10 +126,12 @@ void JKBMS::notificationCallback(NimBLERemoteCharacteristic *characteristic, uin
     if (buffer.handleNotification(data, length)) {
         lastActivity = millis();
 
+#ifdef JKBMS_DEBUG
         Serial.println("Notification processed successfully");
         Serial.printf("- Battery info: %s\n", buffer.getBatteryInfo() ? "Received" : "N/A");
         Serial.printf("- Settings info: %s\n", buffer.getSettingsInfo() ? "Received" : "N/A");
         Serial.printf("- Cell info: %s\n", buffer.getCellInfo() ? "Received" : "N/A");
+#endif
 
         if (buffer.getBatteryInfo() && !buffer.getCellInfo() && !buffer.getSettingsInfo()) {
             // If we have battery data, we should send a request for cell data
@@ -158,7 +168,7 @@ void JKBMS::monitor() {
     }
 
     // Due to interrupts, lastActivity may be greater than currentTime - need to handle this scenario due to underflow
-    if (currentTime - lastActivity > 60000 && lastActivity - currentTime > 2000 && bleDevice) {
+    if (currentTime - lastActivity > 10000 && lastActivity - currentTime > 2000 && bleDevice) {
         // No activity - disconnect
         Serial.printf("No activity - disconnecting (%d ms)\n", currentTime - lastActivity);
         disconnect();
@@ -172,19 +182,19 @@ void JKBMS::connectToDevice() {
         NimBLEClient* tempBleClient = NimBLEDevice::getClientByPeerAddress(bleDevice->getAddress());
         if (tempBleClient) {
             // Delete the existing client
-            Serial.printf("Deleted existing client: %s\n", tempBleClient->getPeerAddress().toString().c_str());
+            Serial.printf("Deleted existing client\n");
             NimBLEDevice::deleteClient(tempBleClient);
         } else {
             // Delete a stale client
             tempBleClient = NimBLEDevice::getDisconnectedClient();
-            Serial.printf("Deleted stale client: %s\n", tempBleClient->getPeerAddress().toString().c_str());
+            Serial.printf("Deleted stale client\n");
             NimBLEDevice::deleteClient(tempBleClient);
         }
     }
 
     if (NimBLEDevice::getCreatedClientCount() >= NIMBLE_MAX_CONNECTIONS) {
         Serial.println("No available clients, cannot allocate connection");
-        bleDevice = nullptr;
+        disconnect();
         return;
     }
 
@@ -199,8 +209,7 @@ void JKBMS::connectToDevice() {
 
     if (!bleClient->connect(true, true, true)) {
         Serial.println("Failed to connect to device");
-        bleClient = nullptr;
-        bleDevice = nullptr;
+        disconnect();
         return;
     }
 }
@@ -215,4 +224,12 @@ SettingsInfo* JKBMS::getSettingsInfo() {
 
 CellInfo* JKBMS::getCellInfo() {
     return buffer.getCellInfo();
+}
+
+void JKBMS::resetParsedData() {
+    buffer.resetParsedData();
+}
+
+bool JKBMS::isRunning() const {
+    return runFlag;
 }

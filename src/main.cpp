@@ -2,7 +2,14 @@
 
 // Bluetooth
 #include "JKBMS.h"
-JKBMS bmsDevice(NimBLEAddress("C8:47:80:20:2E:B3", 0));
+JKBMS bmsDevices[] = {
+    JKBMS(NimBLEAddress("C8:47:80:20:2E:B3", 0)),
+    JKBMS(NimBLEAddress("98:DA:10:07:AC:56", 0)),
+    JKBMS(NimBLEAddress("C8:47:80:21:72:6D", 0)),
+    JKBMS(NimBLEAddress("C8:47:80:3A:22:F3", 0))
+};
+
+#define NUM_BMS_DEVICES (sizeof(bmsDevices) / sizeof(bmsDevices[0]))
 
 // PNG decoding
 #ifdef USE_PNG
@@ -21,6 +28,7 @@ XPT2046_Touchscreen ts(XPT2046_CS, XPT2046_IRQ);
 
 // Forward declarations
 void checkTouchScreen();
+void checkJKBMS();
 void turnOffLEDs();
 #ifdef USE_PNG
 void drawReimu();
@@ -49,14 +57,12 @@ void setup()
     drawReimu();
 #endif
     JKBMS::init();
-
-    bmsDevice.connect();
 }
 
 void loop()
 {
     checkTouchScreen();
-    bmsDevice.monitor();
+    checkJKBMS();
 }
 
 unsigned long lastTouchTime = 0;
@@ -67,6 +73,24 @@ void checkTouchScreen() {
         lastTouchTime = currentMillis;
         TS_Point p = ts.getPoint();
         // Serial.printf("Touch detected at (%d, %d)\n", p.x, p.y);
+    }
+}
+
+void checkJKBMS() {
+    for (int i = 0; i < NUM_BMS_DEVICES; i++) {
+        if (bmsDevices[i].getCellInfo()) {
+            continue; // Skip this device if it already has cell info
+        }
+
+        if (!bmsDevices[i].isRunning()) {
+            bmsDevices[i].connect();
+            Serial.printf("Connecting to BMS device %d...\n", i + 1);
+        }
+
+        bmsDevices[i].monitor();
+
+        // Only one device can be connected at a time
+        break;
     }
 }
 
