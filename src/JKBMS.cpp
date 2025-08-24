@@ -70,6 +70,10 @@ void JKBMS::onPostConnect() {
     Serial.printf("Current MTU: %d\n", bleClient->getMTU());
 #endif
 
+    if (!isRunning() || !bleClient || !bleClient->isConnected()) {
+        return; // We should not be here
+    }
+
     lastActivity = millis();
     // NOTE: ble_att_clt_tx_mtu in ble_att_clt.c needs to be modified to not set BLE_HS_EALREADY
     Serial.printf("Locating attributes...\n");

@@ -28,7 +28,7 @@ void ChartClient::sendData(const JKBMSNotificationBuffer& data) {
     }
 
     const BatteryInfo* batteryInfo = data.getBatteryInfo();
-    const CellInfo* cellInfo = cellInfo;
+    const CellInfo* cellInfo = data.getCellInfo();
 
     if (!batteryInfo || !cellInfo) {
         Serial.println("Cannot send data: incomplete information");
@@ -145,7 +145,7 @@ void ChartClient::sendData(const JKBMSNotificationBuffer& data) {
         cellInfo->cycle_count
     );
 
-    http.begin(client, SERVER_ENDPOINT "/jkbms/cell");
+    http.begin(client, SERVER_ENDPOINT "/jkbms/ingest");
 
     http.addHeader("Content-Type", "application/json");
 

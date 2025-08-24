@@ -101,6 +101,8 @@ void checkJKBMS() {
     for (int i = 0; i < NUM_BMS_DEVICES; i++) {
         if (bmsDevices[i].getCellInfo()) {
             continue; // Skip this device if it already has cell info
+        } else {
+            allHaveCellInfo = false;
         }
 
         if (!bmsDevices[i].isRunning()) {
@@ -110,17 +112,6 @@ void checkJKBMS() {
 
         bmsDevices[i].monitor();
 
-        if (!bmsDevices[i].getCellInfo()) {
-            allHaveCellInfo = false;
-        } else {
-            Serial.printf("BMS device %d cell info:\n", i + 1);
-            bmsDevices[i].getCellInfo()->print();
-
-#ifdef USE_WIFI
-            chartClient.sendData(bmsDevices[i].getNotificationBuffer());
-#endif
-        }
-
         // Only one device can be connected at a time
         break;
     }
@@ -128,8 +119,19 @@ void checkJKBMS() {
     // If all devices have cell info, reset them all
     if (allHaveCellInfo) {
         for (int i = 0; i < NUM_BMS_DEVICES; i++) {
+            Serial.printf("BMS device %d cell info:\n", i + 1);
+            bmsDevices[i].getCellInfo()->print();
+
+#ifdef USE_WIFI
+            chartClient.sendData(bmsDevices[i].getNotificationBuffer());
+#endif
+
             bmsDevices[i].resetParsedData();
+            
         }
+
+        // Physically reboot MCU
+        ESP.restart();
     }
 }
 
