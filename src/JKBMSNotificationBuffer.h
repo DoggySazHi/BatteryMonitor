@@ -17,7 +17,7 @@ public:
     SettingsInfo* getSettingsInfo();
     CellInfo* getCellInfo();
 private:
-    unsigned char notificationData[2048];
+    unsigned char notificationData[NOTIFICATION_BUFFER_SIZE];
     size_t notificationLength = 0;
 
     BatteryInfo batteryInfo;

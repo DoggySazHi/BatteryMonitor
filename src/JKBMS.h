@@ -9,11 +9,6 @@
 
 #include <NimBLEDevice.h>
 
-#define SCAN_TIME 5000
-#define SCAN_INTERVAL 30
-#define SCAN_WINDOW 30
-#define CONNECT_TIME 10000
-
 class JKBMS : public NimBLEScanCallbacks, public NimBLEClientCallbacks
 {
 public:

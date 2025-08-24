@@ -142,8 +142,6 @@ void JKBMS::notificationCallback(NimBLERemoteCharacteristic *characteristic, uin
             // If we have settings data, we should send a request for cell data
             buffer.getSettingsInfo()->print();
             Serial.println("Requesting cell info...");
-            // Comes with the settings info request
-            // bleCharacteristic->writeValue(GET_CELL_INFO);
         } else if (buffer.getCellInfo()) {
             // If we have cell data, we're done - disconnect
             buffer.getCellInfo()->print();
@@ -161,14 +159,14 @@ void JKBMS::monitor() {
         connectToDevice();
     }
 
-    if (readyToExchange && currentTime - lastActivity > 1000 && lastActivity - currentTime > 2000) {
+    if (readyToExchange && currentTime - lastActivity > EXCHANGE_TIME && lastActivity - currentTime > INTERRUPT_MAX_DESYNC) {
         // Start exchanging data
         readyToExchange = false;
         onPostConnect();
     }
 
     // Due to interrupts, lastActivity may be greater than currentTime - need to handle this scenario due to underflow
-    if (currentTime - lastActivity > 10000 && lastActivity - currentTime > 2000 && bleDevice) {
+    if (currentTime - lastActivity > ACTIVITY_TIMEOUT && lastActivity - currentTime > INTERRUPT_MAX_DESYNC && bleDevice) {
         // No activity - disconnect
         Serial.printf("No activity - disconnecting (%d ms)\n", currentTime - lastActivity);
         disconnect();
