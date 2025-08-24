@@ -12,12 +12,13 @@ JKBMS bmsDevices[] = {
 #define NUM_BMS_DEVICES (sizeof(bmsDevices) / sizeof(bmsDevices[0]))
 
 // PNG decoding
-#ifdef USE_PNG
+#if defined(USE_TOUCH) && defined(USE_PNG)
 #include "reimu.h"
 #include <PNGdec.h>
 PNG png; // PNG decoder instance
 #endif
 
+#ifdef USE_TOUCH
 // Touchscreen and display
 #include <SPI.h>
 #include <TFT_eSPI.h>
@@ -25,12 +26,15 @@ PNG png; // PNG decoder instance
 SPIClass mySpi = SPIClass(VSPI);
 TFT_eSPI tft = TFT_eSPI();
 XPT2046_Touchscreen ts(XPT2046_CS, XPT2046_IRQ);
+#endif
 
 // Forward declarations
+#ifdef USE_TOUCH
 void checkTouchScreen();
+#endif
 void checkJKBMS();
 void turnOffLEDs();
-#ifdef USE_PNG
+#if defined(USE_TOUCH) && defined(USE_PNG)
 void drawReimu();
 int pngCallback(PNGDRAW* pDraw);
 #endif
@@ -42,6 +46,7 @@ void setup()
     // Turn off LEDs
     turnOffLEDs();
 
+#ifdef USE_TOUCH
     // Initialise the display
     tft.init();
     tft.setRotation(1); //This is the display in landscape
@@ -53,7 +58,8 @@ void setup()
     
     // Clear the screen before writing to it
     tft.fillScreen(TFT_BLACK);
-#ifdef USE_PNG
+#endif
+#if defined(USE_TOUCH) && defined(USE_PNG)
     drawReimu();
 #endif
     JKBMS::init();
@@ -61,10 +67,13 @@ void setup()
 
 void loop()
 {
+#ifdef USE_TOUCH
     checkTouchScreen();
+#endif
     checkJKBMS();
 }
 
+#ifdef USE_TOUCH
 unsigned long lastTouchTime = 0;
 void checkTouchScreen() {
     unsigned long currentMillis = millis();
@@ -72,9 +81,10 @@ void checkTouchScreen() {
     if (ts.touched() && (currentMillis - lastTouchTime > DEBOUNCE_TIME)) {
         lastTouchTime = currentMillis;
         TS_Point p = ts.getPoint();
-        // Serial.printf("Touch detected at (%d, %d)\n", p.x, p.y);
+        Serial.printf("Touch detected at (%d, %d)\n", p.x, p.y);
     }
 }
+#endif
 
 void checkJKBMS() {
     for (int i = 0; i < NUM_BMS_DEVICES; i++) {
@@ -104,7 +114,7 @@ void turnOffLEDs() {
     digitalWrite(LED_GREEN, HIGH);
 }
 
-#ifdef USE_PNG
+#if defined(USE_TOUCH) && defined(USE_PNG)
 void drawReimu() {
     int rc = png.openFLASH((uint8_t *)reimu, sizeof(reimu), pngCallback);
     if (rc == PNG_SUCCESS) {
