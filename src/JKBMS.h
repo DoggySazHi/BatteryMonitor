@@ -19,9 +19,10 @@ public:
     void disconnect();
     void monitor();
     
-    BatteryInfo* getBatteryInfo();
-    SettingsInfo* getSettingsInfo();
-    CellInfo* getCellInfo();
+    const BatteryInfo* getBatteryInfo() const;
+    const SettingsInfo* getSettingsInfo() const;
+    const CellInfo* getCellInfo() const;
+    const JKBMSNotificationBuffer& getNotificationBuffer() const;
     void resetParsedData();
 
     bool isRunning() const;

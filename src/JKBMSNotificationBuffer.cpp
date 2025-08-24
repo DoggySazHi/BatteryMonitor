@@ -126,14 +126,14 @@ void JKBMSNotificationBuffer::resetParsedData() {
     cellInfoValid = false;
 }
 
-BatteryInfo* JKBMSNotificationBuffer::getBatteryInfo() {
+const BatteryInfo* JKBMSNotificationBuffer::getBatteryInfo() const {
     return batteryInfoValid ? &batteryInfo : nullptr;
 }
 
-SettingsInfo* JKBMSNotificationBuffer::getSettingsInfo() {
+const SettingsInfo* JKBMSNotificationBuffer::getSettingsInfo() const {
     return settingsInfoValid ? &settingsInfo : nullptr;
 }
 
-CellInfo* JKBMSNotificationBuffer::getCellInfo() {
+const CellInfo* JKBMSNotificationBuffer::getCellInfo() const {
     return cellInfoValid ? &cellInfo : nullptr;
 }

@@ -15,8 +15,10 @@ public:
     void sendData(const JKBMSNotificationBuffer& data);
 private:
     bool isConnected = false;
-    WiFiClient _client;
-    HTTPClient _http;
+    WiFiClient client;
+    HTTPClient http;
+
+    char buffer[1024];
 };
 
 #endif

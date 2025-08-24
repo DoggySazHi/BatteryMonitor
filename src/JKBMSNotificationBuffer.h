@@ -13,9 +13,9 @@ public:
     bool handleNotification(unsigned char* data, size_t length);
     void resetParsedData();
     
-    BatteryInfo* getBatteryInfo();
-    SettingsInfo* getSettingsInfo();
-    CellInfo* getCellInfo();
+    const BatteryInfo* getBatteryInfo() const;
+    const SettingsInfo* getSettingsInfo() const;
+    const CellInfo* getCellInfo() const;
 private:
     unsigned char notificationData[NOTIFICATION_BUFFER_SIZE];
     size_t notificationLength = 0;

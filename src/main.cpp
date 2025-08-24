@@ -11,6 +11,12 @@ JKBMS bmsDevices[] = {
 
 #define NUM_BMS_DEVICES (sizeof(bmsDevices) / sizeof(bmsDevices[0]))
 
+// WiFi
+#ifdef USE_WIFI
+#include "ChartClient.h"
+ChartClient chartClient;
+#endif
+
 #ifdef USE_TOUCH
 // Touchscreen and display
 #include <SPI.h>
@@ -57,6 +63,10 @@ void setup() {
     tft.fillScreen(TFT_BLACK);
 #endif
 
+#ifdef USE_WIFI
+    chartClient.init();
+#endif
+
     JKBMS::init();
 }
 
@@ -64,6 +74,11 @@ void loop() {
 #ifdef USE_TOUCH
     checkTouchScreen();
 #endif
+
+#ifdef USE_WIFI
+    chartClient.monitor();
+#endif
+
     checkJKBMS();
 }
 
@@ -81,6 +96,8 @@ void checkTouchScreen() {
 #endif
 
 void checkJKBMS() {
+    boolean allHaveCellInfo = true;
+
     for (int i = 0; i < NUM_BMS_DEVICES; i++) {
         if (bmsDevices[i].getCellInfo()) {
             continue; // Skip this device if it already has cell info
@@ -93,8 +110,26 @@ void checkJKBMS() {
 
         bmsDevices[i].monitor();
 
+        if (!bmsDevices[i].getCellInfo()) {
+            allHaveCellInfo = false;
+        } else {
+            Serial.printf("BMS device %d cell info:\n", i + 1);
+            bmsDevices[i].getCellInfo()->print();
+
+#ifdef USE_WIFI
+            chartClient.sendData(bmsDevices[i].getNotificationBuffer());
+#endif
+        }
+
         // Only one device can be connected at a time
         break;
+    }
+
+    // If all devices have cell info, reset them all
+    if (allHaveCellInfo) {
+        for (int i = 0; i < NUM_BMS_DEVICES; i++) {
+            bmsDevices[i].resetParsedData();
+        }
     }
 }
 

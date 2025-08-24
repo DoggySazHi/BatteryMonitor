@@ -135,16 +135,13 @@ void JKBMS::notificationCallback(NimBLERemoteCharacteristic *characteristic, uin
 
         if (buffer.getBatteryInfo() && !buffer.getCellInfo() && !buffer.getSettingsInfo()) {
             // If we have battery data, we should send a request for cell data
-            buffer.getBatteryInfo()->print();
             Serial.println("Requesting settings info...");
             bleCharacteristic->writeValue(GET_SETTINGS_INFO);
         } else if (buffer.getSettingsInfo() && !buffer.getCellInfo()) {
             // If we have settings data, we should send a request for cell data
-            buffer.getSettingsInfo()->print();
             Serial.println("Requesting cell info...");
         } else if (buffer.getCellInfo()) {
             // If we have cell data, we're done - disconnect
-            buffer.getCellInfo()->print();
             Serial.println("Received cell info, disconnecting...");
             disconnect();
         }
@@ -212,16 +209,20 @@ void JKBMS::connectToDevice() {
     }
 }
 
-BatteryInfo* JKBMS::getBatteryInfo() {
+const BatteryInfo* JKBMS::getBatteryInfo() const {
     return buffer.getBatteryInfo();
 }
 
-SettingsInfo* JKBMS::getSettingsInfo() {
+const SettingsInfo* JKBMS::getSettingsInfo() const {
     return buffer.getSettingsInfo();
 }
 
-CellInfo* JKBMS::getCellInfo() {
+const CellInfo* JKBMS::getCellInfo() const {
     return buffer.getCellInfo();
+}
+
+const JKBMSNotificationBuffer& JKBMS::getNotificationBuffer() const {
+    return buffer;
 }
 
 void JKBMS::resetParsedData() {
