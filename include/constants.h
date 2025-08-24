@@ -1,6 +1,23 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
+// WiFi credentials
+#if __has_include("private.h")
+    #include "private.h"
+#endif
+
+#ifndef WIFI_SSID
+    #define WIFI_SSID "default_ssid"
+#endif
+
+#ifndef WIFI_PASSWORD
+    #define WIFI_PASSWORD "default_password"
+#endif
+
+#ifndef SERVER_ENDPOINT
+    #define SERVER_ENDPOINT "http://your.server.endpoint"
+#endif
+
 // Touchscreen
 #define XPT2046_IRQ 36
 #define XPT2046_MOSI 32

@@ -18,6 +18,7 @@ struct CellInfo {
     float battery_current;
     float battery_temperature_1;
     float battery_temperature_2;
+    uint16_t alarm_bits;
     uint8_t percent_remaining;
     float remaining_capacity;
     float nominal_capacity;
@@ -50,7 +51,7 @@ struct CellInfo {
         info.battery_temperature_1 = parse_16bit_unsigned(data, 162) / 10.0f;
         info.battery_temperature_2 = parse_16bit_unsigned(data, 164) / 10.0f;
 
-        uint16_t alarm_bits = parse_16bit_unsigned(data, 166);
+        info.alarm_bits = parse_16bit_unsigned(data, 166);
         // Decoding the alarms - look at BATTERY_ERRORS - not done here to save memory
 
         info.percent_remaining = parse_byte(data, 173);
