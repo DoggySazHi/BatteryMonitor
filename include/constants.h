@@ -18,6 +18,9 @@
     #define SERVER_ENDPOINT "http://your.server.endpoint"
 #endif
 
+// Watchdog
+#define WATCHDOG_TIMEOUT 15
+
 // Touchscreen
 #define XPT2046_IRQ 36
 #define XPT2046_MOSI 32

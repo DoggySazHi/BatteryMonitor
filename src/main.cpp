@@ -1,4 +1,8 @@
 #include "constants.h"
+#include <esp_task_wdt.h>
+
+// Watchdog
+esp_err_t watchdogError;
 
 // Bluetooth
 #include "JKBMS.h"
@@ -50,6 +54,11 @@ void setup() {
     pinMode(TFT_BL, OUTPUT);
     digitalWrite(TFT_BL, HIGH);
 
+    esp_task_wdt_deinit();
+    watchdogError = esp_task_wdt_init(WATCHDOG_TIMEOUT, true);
+    Serial.println("Last Reset : " + String(esp_err_to_name(watchdogError)));
+    esp_task_wdt_add(NULL);  //add current thread to WDT watch
+
     // Initialise the display
     tft.init();
     tft.setRotation(1); //This is the display in landscape
@@ -80,6 +89,9 @@ void loop() {
 #endif
 
     checkJKBMS();
+
+    // Feed the watchdog
+    esp_task_wdt_reset();
 }
 
 #ifdef USE_TOUCH
