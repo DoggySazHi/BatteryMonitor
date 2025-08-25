@@ -95,17 +95,20 @@ void checkTouchScreen() {
 }
 #endif
 
+size_t bmsIndex = 0;
 void checkJKBMS() {
-    boolean allHaveCellInfo = true;
-
     for (int i = 0; i < NUM_BMS_DEVICES; i++) {
         if (bmsDevices[i].getCellInfo()) {
             continue; // Skip this device if it already has cell info
-        } else {
-            allHaveCellInfo = false;
         }
 
         if (!bmsDevices[i].isRunning()) {
+            if (bmsIndex < i + 1) {
+                bmsIndex = i + 1;
+            } else {
+                continue; // Skip this device if it failed to connect
+            }
+
             bmsDevices[i].connect();
             Serial.printf("Connecting to BMS device %d...\n", i + 1);
         }
@@ -117,8 +120,12 @@ void checkJKBMS() {
     }
 
     // If all devices have cell info, reset them all
-    if (allHaveCellInfo) {
+    if (bmsDevices[NUM_BMS_DEVICES - 1].getCellInfo() || bmsIndex >= NUM_BMS_DEVICES && !bmsDevices[NUM_BMS_DEVICES - 1].isRunning()) {
         for (int i = 0; i < NUM_BMS_DEVICES; i++) {
+            if (!bmsDevices[i].getCellInfo()) {
+                continue;
+            }
+
             Serial.printf("BMS device %d cell info:\n", i + 1);
             bmsDevices[i].getCellInfo()->print();
 
