@@ -34,6 +34,7 @@ XPT2046_Touchscreen ts(XPT2046_CS, XPT2046_IRQ);
 // Forward declarations
 #ifdef USE_TOUCH
 void checkTouchScreen();
+void renderJKBMS();
 #endif
 #ifdef USE_LEDS
 void turnOffLEDs();
@@ -50,10 +51,6 @@ void setup() {
 #endif
 
 #ifdef USE_TOUCH
-    // Enable the backlight
-    pinMode(TFT_BL, OUTPUT);
-    digitalWrite(TFT_BL, HIGH);
-
     esp_task_wdt_deinit();
     watchdogError = esp_task_wdt_init(WATCHDOG_TIMEOUT, true);
     Serial.println("Last Reset : " + String(esp_err_to_name(watchdogError)));
@@ -62,14 +59,15 @@ void setup() {
     // Initialise the display
     tft.init();
     tft.setRotation(1); //This is the display in landscape
+
+    // Enable the backlight
+    pinMode(TFT_BL, OUTPUT);
+    digitalWrite(TFT_BL, HIGH);
     
     // Initialise the touchscreen
     mySpi.begin(XPT2046_CLK, XPT2046_MISO, XPT2046_MOSI, XPT2046_CS);
     ts.begin(mySpi);
     ts.setRotation(1);
-    
-    // Clear the screen before writing to it
-    tft.fillScreen(TFT_BLACK);
 #endif
 
 #ifdef USE_WIFI
@@ -82,6 +80,7 @@ void setup() {
 void loop() {
 #ifdef USE_TOUCH
     checkTouchScreen();
+    renderJKBMS();
 #endif
 
 #ifdef USE_WIFI
@@ -103,6 +102,35 @@ void checkTouchScreen() {
         lastTouchTime = currentMillis;
         TS_Point p = ts.getPoint();
         Serial.printf("Touch detected at (%d, %d)\n", p.x, p.y);
+    }
+}
+
+unsigned long lastRenderTime = 0;
+char statusBuffer[128];
+void renderJKBMS() {
+    unsigned long currentMillis = millis();
+
+    if (currentMillis - lastRenderTime < 1000 / 10) {
+        return;
+    }
+
+    lastRenderTime = currentMillis;
+
+    // Clear the screen before writing to it
+    tft.fillScreen(TFT_BLACK);
+
+    for (int i = 0; i < NUM_BMS_DEVICES; i++) {
+        sprintf(statusBuffer, "BMS %d: %s", i + 1, (bmsDevices[i].isRunning() ? (bmsDevices[i].getCellInfo() ? "Data Received" : "Loading") : "Disconnected"));
+
+        if (bmsDevices[i].getCellInfo()) {
+            tft.setTextColor(TFT_GREEN);
+        } else if (bmsDevices[i].isRunning()) {
+            tft.setTextColor(TFT_YELLOW);
+        } else {
+            tft.setTextColor(TFT_RED);
+        }
+
+        tft.drawString(statusBuffer, 0, i * 20);
     }
 }
 #endif
