@@ -1,13 +1,14 @@
 #include "JKBMS.h"
 
+#ifdef ESP32
 void JKBMS::init() {
     NimBLEDevice::init("JKBMS");
     NimBLEDevice::setPower(ESP_PWR_LVL_P9, NimBLETxPowerType::All);
     NimBLEDevice::setMTU(512);
 }
 
-JKBMS::JKBMS(const NimBLEAddress& mac) {
-    macAddress = mac;
+JKBMS::JKBMS(const std::string& mac) {
+    macAddress = NimBLEAddress(mac, 0);
 
     bleScan = NimBLEDevice::getScan();
     bleScan->setInterval(SCAN_INTERVAL);
@@ -212,6 +213,28 @@ void JKBMS::connectToDevice() {
         return;
     }
 }
+#endif
+
+#ifdef ARDUINO_RASPBERRY_PI_PICO_W
+
+#include <btstack.h>
+#include "btstack_event.h"
+#include <btstack_run_loop.h>
+
+void JKBMS::init() {
+    l2cap_init();
+    sm_init();
+    sm_set_io_capabilities(IO_CAPABILITY_NO_INPUT_NO_OUTPUT);
+
+    // Start the Bluetooth stack
+    hci_power_control(HCI_POWER_ON);
+}
+
+void JKBMS::monitor() {
+    btstack_run_loop_execute();
+}
+
+#endif
 
 const BatteryInfo* JKBMS::getBatteryInfo() const {
     return buffer.getBatteryInfo();

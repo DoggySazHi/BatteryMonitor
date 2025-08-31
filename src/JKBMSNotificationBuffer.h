@@ -6,8 +6,6 @@
 #include "models/settings_info.h"
 #include "models/cell_info.h"
 
-#include <NimBLEDevice.h>
-
 class JKBMSNotificationBuffer {
 public:
     bool handleNotification(unsigned char* data, size_t length);

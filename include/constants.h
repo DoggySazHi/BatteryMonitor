@@ -20,6 +20,7 @@
 
 // Watchdog
 #define WATCHDOG_TIMEOUT 15
+#define EXECUTION_TIMEOUT 300000
 
 // Touchscreen
 #define XPT2046_IRQ 36

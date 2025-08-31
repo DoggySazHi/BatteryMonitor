@@ -1,16 +1,22 @@
 #include "constants.h"
-#include <esp_task_wdt.h>
 
 // Watchdog
-esp_err_t watchdogError;
+#ifdef ESP32
+#include <esp_task_wdt.h>
+#endif
+#ifdef ARDUINO_RASPBERRY_PI_PICO_W
+#include <RP2040Support.h>
+RP2040 rp2040;
+#endif
+unsigned long startupTime = 0;
 
 // Bluetooth
 #include "JKBMS.h"
 JKBMS bmsDevices[] = {
-    JKBMS(NimBLEAddress("C8:47:80:20:2E:B3", 0)),
-    JKBMS(NimBLEAddress("98:DA:10:07:AC:56", 0)),
-    JKBMS(NimBLEAddress("C8:47:80:21:72:6D", 0)),
-    JKBMS(NimBLEAddress("C8:47:80:3A:22:F3", 0))
+    JKBMS("C8:47:80:20:2E:B3"),
+    JKBMS("98:DA:10:07:AC:56"),
+    JKBMS("C8:47:80:21:72:6D"),
+    JKBMS("C8:47:80:3A:22:F3")
 };
 
 #define NUM_BMS_DEVICES (sizeof(bmsDevices) / sizeof(bmsDevices[0]))
@@ -50,12 +56,34 @@ void setup() {
     turnOffLEDs();
 #endif
 
-#ifdef USE_TOUCH
+#ifdef ESP32
     esp_task_wdt_deinit();
-    watchdogError = esp_task_wdt_init(WATCHDOG_TIMEOUT, true);
+    esp_err_t watchdogError = esp_task_wdt_init(WATCHDOG_TIMEOUT, true);
     Serial.println("Last Reset : " + String(esp_err_to_name(watchdogError)));
     esp_task_wdt_add(NULL);  //add current thread to WDT watch
+#endif
+#ifdef ARDUINO_RASPBERRY_PI_PICO_W
+    rp2040.wdt_begin(WATCHDOG_TIMEOUT * 1000);
+    RP2040::resetReason_t resetReason = rp2040.getResetReason();
 
+    switch (resetReason) {
+        case RP2040::resetReason_t::WDT_RESET:
+            Serial.println("Reset Reason: Watchdog Timer");
+            break;
+        case RP2040::resetReason_t::PWRON_RESET:
+            Serial.println("Reset Reason: Power On");
+            break;
+        case RP2040::resetReason_t::SOFT_RESET:
+            Serial.println("Reset Reason: Software");
+            break;
+        default:
+            Serial.println("Reset Reason: Unknown");
+            break;
+    }
+#endif
+    startupTime = millis();
+
+#ifdef USE_TOUCH
     // Initialise the display
     tft.init();
     tft.setRotation(1); //This is the display in landscape
@@ -90,7 +118,21 @@ void loop() {
     checkJKBMS();
 
     // Feed the watchdog
+#ifdef ESP32
     esp_task_wdt_reset();
+#endif
+#ifdef ARDUINO_RASPBERRY_PI_PICO_W
+    rp2040.wdt_reset();
+#endif
+    if (millis() - startupTime > EXECUTION_TIMEOUT) {
+        Serial.println("Execution timeout reached");
+#ifdef ESP32
+        ESP.restart();
+#endif
+#ifdef ARDUINO_RASPBERRY_PI_PICO_W
+        rp2040.reboot();
+#endif
+    }
 }
 
 #ifdef USE_TOUCH
@@ -178,7 +220,12 @@ void checkJKBMS() {
         }
 
         // Physically reboot MCU
+#ifdef ESP32
         ESP.restart();
+#endif
+#ifdef ARDUINO_RASPBERRY_PI_PICO_W
+        rp2040.reboot();
+#endif
     }
 }
 
