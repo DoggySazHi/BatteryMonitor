@@ -218,16 +218,104 @@ void JKBMS::connectToDevice() {
 #ifdef ARDUINO_RASPBERRY_PI_PICO_W
 
 #include <btstack.h>
-#include "btstack_event.h"
 #include <btstack_run_loop.h>
+
+typedef enum {
+    TC_OFF,
+    TC_IDLE,
+    TC_W4_SCAN_RESULT,
+    TC_W4_CONNECT,
+    TC_W4_SERVICE_RESULT,
+    TC_W4_CHARACTERISTIC_RESULT,
+    TC_W4_ENABLE_NOTIFICATIONS_COMPLETE,
+    TC_W4_READY
+} gc_state_t;
+
+btstack_packet_callback_registration_t JKBMS::hci_event_callback_registration;
+gc_state_t JKBMS::state = TC_OFF;
+bd_addr_t JKBMS::server_addr;
+bd_addr_type_t JKBMS::server_addr_type;
+hci_con_handle_t JKBMS::connection_handle;
+gatt_client_service_t JKBMS::server_service;
+gatt_client_characteristic_t JKBMS::server_characteristic;
+bool JKBMS::listener_registered;
+gatt_client_notification_t JKBMS::notification_listener;
 
 void JKBMS::init() {
     l2cap_init();
+
+    gatt_client_init();
+
     sm_init();
     sm_set_io_capabilities(IO_CAPABILITY_NO_INPUT_NO_OUTPUT);
 
+    hci_event_callback_registration.callback = &JKBMS::handle_hci_event;
+
     // Start the Bluetooth stack
     hci_power_control(HCI_POWER_ON);
+}
+
+void JKBMS::handle_hci_event(uint8_t packet_type, uint16_t channel, unsigned char *packet, uint16_t size){
+    bd_addr_t local_addr;
+    if (packet_type != HCI_EVENT_PACKET) return;
+
+    UNUSED(channel);
+    UNUSED(size);
+
+    uint8_t event_type = hci_event_packet_get_type(packet);
+    switch(event_type){
+        case BTSTACK_EVENT_STATE:
+            if (btstack_event_state_get_state(packet) == HCI_STATE_WORKING) {
+                gap_local_bd_addr(local_addr);
+                printf("BTstack up and running on %s.\n", bd_addr_to_str(local_addr));
+                client_start();
+            } else {
+                state = TC_OFF;
+            }
+            break;
+        case GAP_EVENT_ADVERTISING_REPORT:
+            if (state != TC_W4_SCAN_RESULT) return;
+            // check name in advertisement
+            if (!advertisement_report_contains_service(ORG_BLUETOOTH_SERVICE_ENVIRONMENTAL_SENSING, packet)) return;
+            // store address and type
+            gap_event_advertising_report_get_address(packet, server_addr);
+            server_addr_type = gap_event_advertising_report_get_address_type(packet);
+            // stop scanning, and connect to the device
+            state = TC_W4_CONNECT;
+            gap_stop_scan();
+            printf("Connecting to device with addr %s.\n", bd_addr_to_str(server_addr));
+            gap_connect(server_addr, server_addr_type);
+            break;
+        case HCI_EVENT_LE_META:
+            // wait for connection complete
+            switch (hci_event_le_meta_get_subevent_code(packet)) {
+                case HCI_SUBEVENT_LE_CONNECTION_COMPLETE:
+                    if (state != TC_W4_CONNECT) return;
+                    connection_handle = hci_subevent_le_connection_complete_get_connection_handle(packet);
+                    // initialize gatt client context with handle, and add it to the list of active clients
+                    // query primary services
+                    DEBUG_LOG("Search for env sensing service.\n");
+                    state = TC_W4_SERVICE_RESULT;
+                    gatt_client_discover_primary_services_by_uuid16(handle_gatt_client_event, connection_handle, ORG_BLUETOOTH_SERVICE_ENVIRONMENTAL_SENSING);
+                    break;
+                default:
+                    break;
+            }
+            break;
+        case HCI_EVENT_DISCONNECTION_COMPLETE:
+            // unregister listener
+            connection_handle = HCI_CON_HANDLE_INVALID;
+            if (listener_registered){
+                listener_registered = false;
+                gatt_client_stop_listening_for_characteristic_value_updates(&notification_listener);
+            }
+            printf("Disconnected %s\n", bd_addr_to_str(server_addr));
+            if (state == TC_OFF) break;
+            client_start();
+            break;
+        default:
+            break;
+    }
 }
 
 void JKBMS::monitor() {

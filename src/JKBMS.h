@@ -83,6 +83,8 @@ private:
     bool readyToExchange = false;
     unsigned long lastActivity = 0;
     JKBMSNotificationBuffer buffer;
+
+    static btstack_packet_callback_registration_t hci_event_callback_registration;
 };
 
 #endif
