@@ -78,13 +78,30 @@ public:
 
     bool isRunning() const;
 private:
+    bd_addr_t macAddress;
+    bd_addr_type_t macAddressType; // bd_addr_type_t
+    hci_con_handle_t connectionHandle = HCI_CON_HANDLE_INVALID;
+    bool serviceFound = false;
+    gatt_client_service_t remoteService;
+    gatt_client_characteristic_t remoteCharacteristic;
+    bool listenerRegistered = false;
+    gatt_client_notification_t notificationListener;
+
     bool runFlag = false; // Atomic flag to indicate if the BMS is running
-    bool readyToConnect = false;
-    bool readyToExchange = false;
     unsigned long lastActivity = 0;
     JKBMSNotificationBuffer buffer;
 
+    // For some reason, btstack does not allow const data in the write function, so we need this workaround
+    unsigned char sendBuffer[sizeof(GET_BATTERY_INFO)];
+
+    static void static_handle_hci_event(uint8_t packet_type, uint16_t channel, unsigned char *packet, uint16_t size);
+    static void static_handle_gatt_client_event(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size);
+    // The static functions above are used to bind to the C-style callback system of btstack.
     static btstack_packet_callback_registration_t hci_event_callback_registration;
+    static JKBMS* activeInstance;
+
+    void handle_hci_event(uint8_t packet_type, uint16_t channel, unsigned char *packet, uint16_t size);
+    void handle_gatt_client_event(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size);
 };
 
 #endif

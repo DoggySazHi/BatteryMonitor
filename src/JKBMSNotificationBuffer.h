@@ -8,7 +8,7 @@
 
 class JKBMSNotificationBuffer {
 public:
-    bool handleNotification(unsigned char* data, size_t length);
+    bool handleNotification(const unsigned char* data, size_t length);
     void resetParsedData();
     
     const BatteryInfo* getBatteryInfo() const;

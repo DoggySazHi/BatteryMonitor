@@ -4,10 +4,6 @@
 #ifdef ESP32
 #include <esp_task_wdt.h>
 #endif
-#ifdef ARDUINO_RASPBERRY_PI_PICO_W
-#include <RP2040Support.h>
-RP2040 rp2040;
-#endif
 unsigned long startupTime = 0;
 
 // Bluetooth

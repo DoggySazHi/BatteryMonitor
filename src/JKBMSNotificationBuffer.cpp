@@ -72,7 +72,7 @@ void JKBMSNotificationBuffer::processRecord() {
     }
 }
 
-bool JKBMSNotificationBuffer::handleNotification(unsigned char* data, size_t length) {
+bool JKBMSNotificationBuffer::handleNotification(const unsigned char* data, size_t length) {
     if (length + notificationLength > sizeof(notificationData)) {
         // If incoming data exceeds buffer size, reset buffer
         notificationLength = 0;
