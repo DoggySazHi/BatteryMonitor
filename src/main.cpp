@@ -60,7 +60,7 @@ void setup() {
 #endif
 #ifdef ARDUINO_RASPBERRY_PI_PICO_W
     delay(1000);
-    // rp2040.wdt_begin(WATCHDOG_TIMEOUT * 1000);
+    rp2040.wdt_begin(WATCHDOG_TIMEOUT * 1000);
     RP2040::resetReason_t resetReason = rp2040.getResetReason();
 
     switch (resetReason) {
@@ -119,7 +119,7 @@ void loop() {
     esp_task_wdt_reset();
 #endif
 #ifdef ARDUINO_RASPBERRY_PI_PICO_W
-    // rp2040.wdt_reset();
+    rp2040.wdt_reset();
 #endif
     if (millis() - startupTime > EXECUTION_TIMEOUT) {
         Serial.println("Execution timeout reached");
@@ -189,7 +189,7 @@ void checkJKBMS() {
             }
 
             Serial.printf("Connecting to BMS device %d...\n", i + 1);
-            delay(500); // Small delay to allow previous disconnect to settle
+            delay(1000); // Small delay to allow previous disconnect to settle
             bmsDevices[i].connect();
         }
 
@@ -216,6 +216,9 @@ void checkJKBMS() {
             bmsDevices[i].resetParsedData();
             
         }
+
+        Serial.println("All devices processed, resetting...");
+        delay(1000);
 
         // Physically reboot MCU
 #ifdef ESP32

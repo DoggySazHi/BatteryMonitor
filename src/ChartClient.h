@@ -13,12 +13,13 @@ public:
     void init();
     void monitor();
     void sendData(const JKBMSNotificationBuffer& data);
+    void sendTestData();
 private:
     bool isConnected = false;
     WiFiClient client;
     HTTPClient http;
 
-    char buffer[1024];
+    char buffer[2048];
 };
 
 #endif
