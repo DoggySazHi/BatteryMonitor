@@ -58,7 +58,7 @@ void setup() {
     Serial.println("Last Reset : " + String(esp_err_to_name(watchdogError)));
     esp_task_wdt_add(NULL);  //add current thread to WDT watch
 #endif
-#ifdef ARDUINO_RASPBERRY_PI_PICO_W
+#ifdef ARDUINO_ARCH_RP2040
     delay(1000);
     rp2040.wdt_begin(WATCHDOG_TIMEOUT * 1000);
     RP2040::resetReason_t resetReason = rp2040.getResetReason();
@@ -118,7 +118,7 @@ void loop() {
 #ifdef ESP32
     esp_task_wdt_reset();
 #endif
-#ifdef ARDUINO_RASPBERRY_PI_PICO_W
+#ifdef ARDUINO_ARCH_RP2040
     rp2040.wdt_reset();
 #endif
     if (millis() - startupTime > EXECUTION_TIMEOUT) {
@@ -126,7 +126,7 @@ void loop() {
 #ifdef ESP32
         ESP.restart();
 #endif
-#ifdef ARDUINO_RASPBERRY_PI_PICO_W
+#ifdef ARDUINO_ARCH_RP2040
         rp2040.reboot();
 #endif
     }
@@ -224,7 +224,7 @@ void checkJKBMS() {
 #ifdef ESP32
         ESP.restart();
 #endif
-#ifdef ARDUINO_RASPBERRY_PI_PICO_W
+#ifdef ARDUINO_ARCH_RP2040
         rp2040.reboot();
 #endif
     }

@@ -35,6 +35,29 @@ void ChartClient::sendData(const JKBMSNotificationBuffer& data) {
         return;
     }
 
+    if (
+        strlen(batteryInfo->serialNumber) == 0 || // varchar(12)
+        strlen(batteryInfo->serialNumber) > 12 ||
+        cellInfo->average_cell_voltage < 0.0f || cellInfo->average_cell_voltage > 5.000f || // decimal(5, 3)
+        cellInfo->delta_cell_voltage < 0.0f || cellInfo->delta_cell_voltage > 5.000f || // decimal(5, 3)
+        cellInfo->mosfet_temperature < -40.0f || cellInfo->mosfet_temperature > 99.999f || // decimal(5, 3)
+        cellInfo->battery_voltage < 0.0f || cellInfo->battery_voltage > 99.999f || // decimal(5, 3)
+        cellInfo->battery_power < 0.0f || cellInfo->battery_power > 99.999f || // decimal(5, 3)
+        fabs(cellInfo->battery_current) > 99.999f || // decimal(5, 3) - can be negative
+        cellInfo->battery_temperature_1 < -9999.9f || cellInfo->battery_temperature_1 > 9999.9f || // decimal(5, 1)
+        cellInfo->battery_temperature_2 < -9999.9f || cellInfo->battery_temperature_2 > 9999.9f || // decimal(5, 1)
+        cellInfo->alarm_bits > 0xFFFFFFFF || // bigint (unsigned 32-bit)
+        cellInfo->percent_remaining > 100 || // tinyint (0-100)
+        cellInfo->remaining_capacity < 0.0f || cellInfo->remaining_capacity > 9999999.999f || // decimal(10, 3)
+        cellInfo->nominal_capacity < 0.0f || cellInfo->nominal_capacity > 9999999.999f || // decimal(10, 3)
+        cellInfo->cycle_capacity < 0.0f || cellInfo->cycle_capacity > 9999999.999f || // decimal(10, 3)
+        cellInfo->state_of_health > 100 || // tinyint (0-100)
+        cellInfo->cycle_count > 0xFFFFFFFF // bigint (unsigned 32-bit)
+    ) {
+        Serial.println("Cannot send data: data is corrupted");
+        return;
+    }
+
     Serial.println("Sending data to server...");
     // JSON - sprintf force all floats to be two decimal places (since that's our actual precision)
 
@@ -42,42 +65,14 @@ void ChartClient::sendData(const JKBMSNotificationBuffer& data) {
         "serial_number": "%s",
         "cell_info": {
             "cell_voltages": [
-                %.2f,
-                %.2f,
-                %.2f,
-                %.2f,
-                %.2f,
-                %.2f,
-                %.2f,
-                %.2f,
-                %.2f,
-                %.2f,
-                %.2f,
-                %.2f,
-                %.2f,
-                %.2f,
-                %.2f,
-                %.2f
+                %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f,
+                %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f
             ],
             "average_cell_voltage": %.2f,
             "delta_cell_voltage": %.2f,
             "cell_wire_resistances": [
-                %.2f,
-                %.2f,
-                %.2f,
-                %.2f,
-                %.2f,
-                %.2f,
-                %.2f,
-                %.2f,
-                %.2f,
-                %.2f,
-                %.2f,
-                %.2f,
-                %.2f,
-                %.2f,
-                %.2f,
-                %.2f
+                %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f,
+                %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f
             ],
             "mosfet_temperature": %.2f,
             "battery_voltage": %.2f,
@@ -85,12 +80,12 @@ void ChartClient::sendData(const JKBMSNotificationBuffer& data) {
             "battery_current": %.2f,
             "battery_temperature_1": %.2f,
             "battery_temperature_2": %.2f,
-            "alarm_bits": %hu,
-            "percent_remaining": %hhu,
+            "alarm_bits": %u,
+            "percent_remaining": %u,
             "remaining_capacity": %.2f,
             "nominal_capacity": %.2f,
             "cycle_capacity": %.2f,
-            "state_of_health": %hhu,
+            "state_of_health": %u,
             "cycle_count": %u
         }
     })";

@@ -216,7 +216,7 @@ void JKBMS::connectToDevice() {
 }
 #endif
 
-#ifdef ARDUINO_RASPBERRY_PI_PICO_W
+#ifdef ARDUINO_ARCH_RP2040
 
 #include <btstack.h>
 #include <btstack_run_loop.h>
