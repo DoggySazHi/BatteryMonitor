@@ -229,7 +229,7 @@ JKBMS::JKBMS(const std::string& mac) {
     
     for (int i = 0; i < 6; i++) {
         std::string byteString = mac.substr(i * 3, 2);
-        macAddress[5 - i] = (uint8_t) strtol(byteString.c_str(), nullptr, 16); // Reverse order
+        macAddress[i] = (uint8_t) strtol(byteString.c_str(), nullptr, 16);
     }
 
     macAddressType = BD_ADDR_TYPE_LE_PUBLIC;
@@ -275,8 +275,19 @@ void JKBMS::disconnect() {
         Serial.println("Disconnected from device");
     }
 
+    // Stop scanning if still active
+    gap_stop_scan();
+    Serial.println("Stopped scanning");
+
+    activeInstance = nullptr;
     connectionHandle = HCI_CON_HANDLE_INVALID;
+    serviceFound = false;
+    listenerRegistered = false;
+    batteryInfoSent = false;
+
     runFlag = false;
+
+    Serial.println("Cleanup complete");
 }
 
 void JKBMS::static_handle_hci_event(uint8_t packet_type, uint16_t channel, unsigned char *packet, uint16_t size) {
@@ -304,7 +315,7 @@ void JKBMS::handle_hci_event(uint8_t packet_type, uint16_t channel, unsigned cha
             gap_event_advertising_report_get_address(packet, targetMacAddress);
             targetMacAddressType = (bd_addr_type_t) gap_event_advertising_report_get_address_type(packet);
             Serial.printf("Found device: %s\n", bd_addr_to_str(targetMacAddress));
-            
+
             if (memcmp(targetMacAddress, macAddress, 6) == 0) {
                 Serial.printf("Found target device: %s\n", bd_addr_to_str(targetMacAddress));
 
@@ -374,11 +385,13 @@ void JKBMS::handle_gatt_client_event(uint8_t packet_type, uint16_t channel, uint
                 Serial.println("Subscribing to notifications...");
                 gatt_client_write_client_characteristic_configuration(static_handle_gatt_client_event, connectionHandle, &remoteCharacteristic, GATT_CLIENT_CHARACTERISTICS_CONFIGURATION_NOTIFICATION);
             } else {
-                Serial.printf("Notifications enabled, ATT status 0x%02x\n", gatt_event_query_complete_get_att_status(packet));
-
-                Serial.println("Requesting battery info...");
-                memcpy((void*) sendBuffer, (const void*) GET_BATTERY_INFO, sizeof(GET_BATTERY_INFO));
-                gatt_client_write_value_of_characteristic(static_handle_gatt_client_event, connectionHandle, remoteCharacteristic.value_handle, sizeof(GET_BATTERY_INFO), sendBuffer);
+                if (!batteryInfoSent) {
+                    batteryInfoSent = true;
+                    Serial.printf("Notifications enabled, ATT status 0x%02x\n", gatt_event_query_complete_get_att_status(packet));
+                    Serial.println("Requesting battery info...");
+                    memcpy((void*) sendBuffer, (const void*) GET_BATTERY_INFO, sizeof(GET_BATTERY_INFO));
+                    gatt_client_write_value_of_characteristic(static_handle_gatt_client_event, connectionHandle, remoteCharacteristic.value_handle, sizeof(GET_BATTERY_INFO), sendBuffer);
+                }
             }
 
             break;
@@ -427,7 +440,7 @@ void JKBMS::handle_gatt_client_event(uint8_t packet_type, uint16_t channel, uint
 void JKBMS::monitor() {
     unsigned long currentTime = millis();
 
-    btstack_run_loop_execute();
+    // BTstack is running in the background - no need to call a poll function
 
     // Due to interrupts, lastActivity may be greater than currentTime - need to handle this scenario due to underflow
     if (isRunning() && currentTime - lastActivity > ACTIVITY_TIMEOUT && lastActivity - currentTime > INTERRUPT_MAX_DESYNC) {

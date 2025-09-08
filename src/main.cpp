@@ -59,7 +59,8 @@ void setup() {
     esp_task_wdt_add(NULL);  //add current thread to WDT watch
 #endif
 #ifdef ARDUINO_RASPBERRY_PI_PICO_W
-    rp2040.wdt_begin(WATCHDOG_TIMEOUT * 1000);
+    delay(1000);
+    // rp2040.wdt_begin(WATCHDOG_TIMEOUT * 1000);
     RP2040::resetReason_t resetReason = rp2040.getResetReason();
 
     switch (resetReason) {
@@ -118,7 +119,7 @@ void loop() {
     esp_task_wdt_reset();
 #endif
 #ifdef ARDUINO_RASPBERRY_PI_PICO_W
-    rp2040.wdt_reset();
+    // rp2040.wdt_reset();
 #endif
     if (millis() - startupTime > EXECUTION_TIMEOUT) {
         Serial.println("Execution timeout reached");
@@ -187,8 +188,9 @@ void checkJKBMS() {
                 continue; // Skip this device if it failed to connect
             }
 
-            bmsDevices[i].connect();
             Serial.printf("Connecting to BMS device %d...\n", i + 1);
+            delay(500); // Small delay to allow previous disconnect to settle
+            bmsDevices[i].connect();
         }
 
         bmsDevices[i].monitor();

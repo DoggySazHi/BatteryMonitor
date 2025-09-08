@@ -91,6 +91,8 @@ private:
     unsigned long lastActivity = 0;
     JKBMSNotificationBuffer buffer;
 
+    bool batteryInfoSent = false;
+
     // For some reason, btstack does not allow const data in the write function, so we need this workaround
     unsigned char sendBuffer[sizeof(GET_BATTERY_INFO)];
 

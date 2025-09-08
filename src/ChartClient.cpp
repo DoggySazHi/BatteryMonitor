@@ -35,6 +35,7 @@ void ChartClient::sendData(const JKBMSNotificationBuffer& data) {
         return;
     }
 
+    Serial.println("Sending data to server...");
     // JSON - sprintf force all floats to be two decimal places (since that's our actual precision)
 
     const char* jsonTemplate = R"({
@@ -146,10 +147,97 @@ void ChartClient::sendData(const JKBMSNotificationBuffer& data) {
     );
 
     http.begin(client, SERVER_ENDPOINT "/jkbms/ingest");
+    Serial.printf("POST %s\n", SERVER_ENDPOINT "/jkbms/ingest");
+    Serial.printf("Payload: %s\n", buffer);
 
     http.addHeader("Content-Type", "application/json");
+    Serial.printf("Content-Length: %zu\n", len);
 
+    delay(100); // Small delay to allow connection to stabilize
     int httpResponseCode = http.POST((uint8_t*) buffer, len);
+    if (httpResponseCode > 0) {
+        Serial.printf("HTTP Response code: %d\n", httpResponseCode);
+    } else {
+        Serial.printf("HTTP POST failed: %s\n", http.errorToString(httpResponseCode).c_str());
+    }
+
+    http.end();
+}
+
+void ChartClient::sendTestData() {
+    if (!isConnected) {
+        Serial.println("Cannot send data: not connected to WiFi");
+        return;
+    }
+
+    Serial.println("Sending test data to server...");
+
+    const char* testData = R"({
+        "serial_number": "40729492166",
+        "cell_info": {
+            "cell_voltages": [
+                3.38,
+                3.38,
+                3.38,
+                3.38,
+                3.38,
+                3.38,
+                3.38,
+                3.38,
+                3.38,
+                3.38,
+                3.38,
+                3.38,
+                3.38,
+                3.38,
+                3.38,
+                3.38
+            ],
+            "average_cell_voltage": 3.38,
+            "delta_cell_voltage": 0.01,
+            "cell_wire_resistances": [
+                0.08,
+                0.08,
+                0.10,
+                0.11,
+                0.13,
+                0.13,
+                0.15,
+                0.17,
+                0.17,
+                0.16,
+                0.15,
+                0.12,
+                0.11,
+                0.10,
+                0.09,
+                0.08
+            ],
+            "mosfet_temperature": 33.50,
+            "battery_voltage": 54.10,
+            "battery_power": 1.47,
+            "battery_current": 18.20,
+            "battery_temperature_1": 29.30,
+            "battery_temperature_2": 29.10,
+            "alarm_bits": 0,
+            "percent_remaining": 95,
+            "remaining_capacity": 1.85,
+            "nominal_capacity": 310.00,
+            "cycle_capacity": 43.40,
+            "state_of_health": 100,
+            "cycle_count": 13
+        }
+    })";
+
+    http.begin(client, SERVER_ENDPOINT "/jkbms/ingest");
+    Serial.printf("POST %s\n", SERVER_ENDPOINT "/jkbms/ingest");
+    Serial.printf("Payload: %s\n", testData);
+
+    http.addHeader("Content-Type", "application/json");
+    Serial.printf("Content-Length: %zu\n", strlen(testData));
+
+    delay(100); // Small delay to allow connection to stabilize
+    int httpResponseCode = http.POST((uint8_t*) testData, strlen(testData));
     if (httpResponseCode > 0) {
         Serial.printf("HTTP Response code: %d\n", httpResponseCode);
     } else {
