@@ -20,7 +20,15 @@
 
 // Watchdog
 #define WATCHDOG_TIMEOUT 15
-#define EXECUTION_TIMEOUT 300000
+
+// For ESP32 recommended to be about 5 minutes
+#ifdef ESP32
+    #define EXECUTION_TIMEOUT 300000
+#endif
+// For RP2040 recommended to be about 30 seconds
+#ifdef ARDUINO_ARCH_RP2040
+    #define EXECUTION_TIMEOUT 30000
+#endif
 
 // Touchscreen
 #define XPT2046_IRQ 36

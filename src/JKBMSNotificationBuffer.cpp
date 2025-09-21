@@ -80,7 +80,7 @@ bool JKBMSNotificationBuffer::handleNotification(const unsigned char* data, size
 
     // Append new data to the buffer
     for (size_t i = 0; i < length; ++i) {
-        if (memcmp(&data[i], KEEP_ALIVE, sizeof(KEEP_ALIVE)) == 0) {
+        if (memcmp(&data[i], KEEP_ALIVE, sizeof(KEEP_ALIVE) - 1) == 0) {
             // If ping response found, skip those bytes
             i += sizeof(KEEP_ALIVE) - 1;
             continue;

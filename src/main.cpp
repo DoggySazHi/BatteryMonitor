@@ -23,6 +23,9 @@ JKBMS bmsDevices[] = {
 ChartClient chartClient;
 #endif
 
+// Config
+#include "Config.h"
+
 #ifdef USE_TOUCH
 // Touchscreen and display
 #include <SPI.h>
@@ -42,6 +45,9 @@ void renderJKBMS();
 void turnOffLEDs();
 #endif
 
+void feedWatchdog();
+void resetDevice();
+void delaySafe(unsigned long ms);
 void checkJKBMS();
 
 void setup() {
@@ -108,27 +114,63 @@ void loop() {
     renderJKBMS();
 #endif
 
+    // Feed the watchdog
+    feedWatchdog();
+
 #ifdef USE_WIFI
     chartClient.monitor();
+#endif // USE_WIFI
+
+#if defined(ARDUINO_ARCH_RP2040) and defined(USE_WIFI)
+
+    if (!WiFi.isConnected()) {
+        Serial.println("WiFi not connected, skipping BMS check");
+        delaySafe(1000);
+    } else {
+        checkJKBMS();
+    }
+
+#else
+    // Check as normal.
+    checkJKBMS();
+#endif // ARDUINO_ARCH_RP2040
+
+    if (millis() - startupTime > EXECUTION_TIMEOUT) {
+        Serial.println("Execution timeout reached");
+
+#ifdef ARDUINO_ARCH_RP2040
+        Config& config = Config::getInstance();
+        config.lastBMSChecked += 1;
+        Config::save();
 #endif
 
-    checkJKBMS();
+        resetDevice();
+    }
+}
 
-    // Feed the watchdog
+void resetDevice() {
+#ifdef ESP32
+    ESP.restart();
+#endif
+#ifdef ARDUINO_ARCH_RP2040
+    rp2040.reboot();
+#endif
+}
+
+void feedWatchdog() {
 #ifdef ESP32
     esp_task_wdt_reset();
 #endif
 #ifdef ARDUINO_ARCH_RP2040
     rp2040.wdt_reset();
 #endif
-    if (millis() - startupTime > EXECUTION_TIMEOUT) {
-        Serial.println("Execution timeout reached");
-#ifdef ESP32
-        ESP.restart();
-#endif
-#ifdef ARDUINO_ARCH_RP2040
-        rp2040.reboot();
-#endif
+}
+
+void delaySafe(unsigned long ms) {
+    unsigned long start = millis();
+    while (millis() - start < ms) {
+        feedWatchdog();
+        delay(10);
     }
 }
 
@@ -174,6 +216,7 @@ void renderJKBMS() {
 }
 #endif
 
+#ifdef ESP32
 size_t bmsIndex = 0;
 void checkJKBMS() {
     for (int i = 0; i < NUM_BMS_DEVICES; i++) {
@@ -189,7 +232,7 @@ void checkJKBMS() {
             }
 
             Serial.printf("Connecting to BMS device %d...\n", i + 1);
-            delay(1000); // Small delay to allow previous disconnect to settle
+            delaySafe(5000); // Delay to allow previous disconnect to settle
             bmsDevices[i].connect();
         }
 
@@ -214,21 +257,48 @@ void checkJKBMS() {
 #endif
 
             bmsDevices[i].resetParsedData();
-            
         }
+        
+        bmsIndex = 0;
 
         Serial.println("All devices processed, resetting...");
-        delay(1000);
-
-        // Physically reboot MCU
-#ifdef ESP32
-        ESP.restart();
-#endif
-#ifdef ARDUINO_ARCH_RP2040
-        rp2040.reboot();
-#endif
+        delaySafe(5000);
     }
 }
+#endif
+
+#ifdef ARDUINO_ARCH_RP2040
+
+void checkJKBMS() {
+    Config& config = Config::getInstance();
+    uint8_t lastBMSChecked = config.lastBMSChecked % NUM_BMS_DEVICES;
+
+    // Only probe one BMS device at a time then reset the module - workaround for RP2040 BTStack stability issues
+    if (!bmsDevices[lastBMSChecked].isRunning()) {
+        Serial.printf("Connecting to BMS device %d...\n", lastBMSChecked + 1);
+        bmsDevices[lastBMSChecked].connect();
+    }
+
+    bmsDevices[lastBMSChecked].monitor();
+
+    if (bmsDevices[lastBMSChecked].getCellInfo()) {
+        Serial.printf("BMS device %d cell info:\n", lastBMSChecked + 1);
+        bmsDevices[lastBMSChecked].getCellInfo()->print();
+
+#ifdef USE_WIFI
+        chartClient.sendData(bmsDevices[lastBMSChecked].getNotificationBuffer());
+#endif
+        
+        config.lastBMSChecked = lastBMSChecked + 1;
+        Config::save();
+
+        Serial.printf("Device %d processed, resetting...\n", lastBMSChecked + 1);
+        delaySafe(5000);
+        resetDevice();
+    }
+}
+
+#endif
 
 #ifdef USE_LEDS
 void turnOffLEDs() {

@@ -314,7 +314,7 @@ void JKBMS::handle_hci_event(uint8_t packet_type, uint16_t channel, unsigned cha
         case GAP_EVENT_ADVERTISING_REPORT:
             gap_event_advertising_report_get_address(packet, targetMacAddress);
             targetMacAddressType = (bd_addr_type_t) gap_event_advertising_report_get_address_type(packet);
-            Serial.printf("Found device: %s\n", bd_addr_to_str(targetMacAddress));
+            // Serial.printf("Found device: %s\n", bd_addr_to_str(targetMacAddress));
 
             if (memcmp(targetMacAddress, macAddress, 6) == 0) {
                 Serial.printf("Found target device: %s\n", bd_addr_to_str(targetMacAddress));
@@ -388,6 +388,7 @@ void JKBMS::handle_gatt_client_event(uint8_t packet_type, uint16_t channel, uint
                 if (!batteryInfoSent) {
                     batteryInfoSent = true;
                     Serial.printf("Notifications enabled, ATT status 0x%02x\n", gatt_event_query_complete_get_att_status(packet));
+                    delay(100); // Short delay to ensure notifications are enabled before sending data
                     Serial.println("Requesting battery info...");
                     memcpy((void*) sendBuffer, (const void*) GET_BATTERY_INFO, sizeof(GET_BATTERY_INFO));
                     gatt_client_write_value_of_characteristic(static_handle_gatt_client_event, connectionHandle, remoteCharacteristic.value_handle, sizeof(GET_BATTERY_INFO), sendBuffer);
@@ -403,7 +404,7 @@ void JKBMS::handle_gatt_client_event(uint8_t packet_type, uint16_t channel, uint
         case GATT_EVENT_NOTIFICATION: {
             uint16_t length = gatt_event_notification_get_value_length(packet);
             const uint8_t *data = gatt_event_notification_get_value(packet);
-            
+
             if (buffer.handleNotification(data, length)) {
                 lastActivity = millis();
 
